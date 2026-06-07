@@ -3,257 +3,282 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>דשבורד מכירות ספרים</title>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&display=swap" rel="stylesheet"/>
+<title>מכירות ספרים</title>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;900&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root {
-  --bg:#f5f4f0; --surface:#fff; --surface2:#f0efe9; --border:#e0ddd4;
-  --accent:#2d5a3d; --accent2:#4a8c5c; --accent3:#e8f4ec;
-  --gold:#c9a84c; --gold2:#f0e6c8;
-  --text:#1a1a16; --muted:#6b6b5a; --dim:#9e9e88;
-  --danger:#c0392b; --radius:16px;
+:root{
+  --bg:#f4f3ef;--surface:#fff;--surface2:#f0efe9;--border:#e2dfd6;
+  --accent:#2d5a3d;--accent2:#4a8c5c;--accent3:#e8f4ec;
+  --gold:#c9a84c;--gold2:#fdf5e0;
+  --text:#1a1a14;--muted:#6b6856;--dim:#aaa898;
+  --danger:#b94040;--radius:14px;
+  --new-client:#3b6fd4;--new-book:#c9a84c;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* Header */
-.header{background:var(--accent);color:#fff;padding:18px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 16px rgba(45,90,61,.2)}
-.htitle{font-size:20px;font-weight:700}
-.hsub{font-size:12px;opacity:.7;margin-top:2px}
-.sdot{width:7px;height:7px;border-radius:50%;background:#5dde82;animation:pulse 2s infinite;display:inline-block;margin-left:5px}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.year-btns{display:flex;gap:6px}
+/* ── Loader ── */
+#loader{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .4s}
+#loader.hide{opacity:0;pointer-events:none}
+.spin{width:42px;height:42px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:sp .8s linear infinite;margin-bottom:14px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── Header ── */
+header{background:var(--accent);color:#fff;padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(45,90,61,.25)}
+.hlogo{font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
+.hright{display:flex;align-items:center;gap:10px}
 .ybtn{padding:5px 13px;border-radius:20px;border:1.5px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;transition:all .2s}
-.ybtn.active{background:#fff;color:var(--accent);font-weight:700;border-color:#fff}
-.ybtn:hover:not(.active){background:rgba(255,255,255,.15)}
+.ybtn.on{background:#fff;color:var(--accent);font-weight:700;border-color:#fff}
+.ybtn:hover:not(.on){background:rgba(255,255,255,.15)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#5dde82;display:inline-block;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 
-/* Layout */
-.main{padding:24px 28px;max-width:1400px;margin:0 auto}
+/* ── Nav ── */
+nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 28px;gap:2px}
+.nv{padding:13px 18px;font-size:13px;font-weight:500;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .2s;font-family:'Heebo',sans-serif}
+.nv.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+.nv:hover:not(.on){color:var(--text)}
 
-/* Loading */
-.loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;transition:opacity .4s}
-.loading-overlay.hidden{opacity:0;pointer-events:none}
-.loader{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:14px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.ltxt{font-size:13px;color:var(--muted)}
+/* ── Main ── */
+main{padding:24px 28px;max-width:1400px;margin:0 auto}
+.page{display:none}.page.on{display:block}
 
-/* Error */
-.err{background:#fdf0ef;border:1px solid #f5c6c2;border-radius:12px;padding:14px 18px;color:var(--danger);margin-bottom:20px;display:none;font-size:13px}
+/* ── Error ── */
+.err{background:#fdf0ef;border:1px solid #f0c0bc;border-radius:10px;padding:12px 16px;color:var(--danger);font-size:13px;margin-bottom:18px;display:none}
 
-/* Tabs */
-.tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:2px solid var(--border)}
-.tab{padding:9px 18px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:500;border:none;background:none;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
-.tab-panel{display:none}
-.tab-panel.active{display:block}
+/* ── KPI ── */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:22px}
+.kcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;transition:transform .2s,box-shadow .2s;cursor:default}
+.kcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.07)}
+.kcard.green{background:var(--accent);border-color:var(--accent)}
+.kcard.gold{background:var(--gold);border-color:var(--gold)}
+.klbl{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+.kcard.green .klbl,.kcard.gold .klbl{color:rgba(255,255,255,.65)}
+.knum{font-size:28px;font-weight:900;line-height:1}
+.kcard.green .knum,.kcard.gold .knum{color:#fff}
+.ksub{font-size:11px;color:var(--muted);margin-top:4px}
+.kcard.green .ksub{color:rgba(255,255,255,.6)}
+.kdelta{font-size:11px;font-weight:600;margin-top:4px}
+.kdelta.up{color:#1a6b35}.kdelta.down{color:var(--danger)}
 
-/* Cards */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
-.ctitle{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
-.cbadge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;background:var(--accent3);color:var(--accent)}
+/* ── Card ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.ctitle{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cbadge{font-size:11px;font-weight:500;padding:2px 9px;border-radius:20px;background:var(--accent3);color:var(--accent)}
 
-/* KPI Grid */
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:24px}
-.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;transition:transform .2s,box-shadow .2s;cursor:default}
-.kpi:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
-.kpi.accent{background:var(--accent);border-color:var(--accent)}
-.kpi.gold{background:var(--gold);border-color:var(--gold)}
-.klabel{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
-.kpi.accent .klabel{color:rgba(255,255,255,.6)}
-.kpi.gold .klabel{color:rgba(255,255,255,.7)}
-.kval{font-size:30px;font-weight:900;color:var(--text);line-height:1}
-.kpi.accent .kval,.kpi.gold .kval{color:#fff}
-.ksub{font-size:12px;color:var(--muted);margin-top:5px}
-.kpi.accent .ksub{color:rgba(255,255,255,.65)}
-.kdelta{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;margin-top:5px}
-.kdelta.up{color:#1a6b35}
-.kdelta.down{color:var(--danger)}
+/* ── Grids ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px}
 
-/* Grids */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+/* ── Book bars ── */
+.bbar{margin-bottom:10px}
+.bbhead{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+.bbname{font-weight:500}.bbval{font-weight:700;color:var(--accent)}
+.bbt{background:var(--surface2);border-radius:3px;height:6px;overflow:hidden}
+.bbf{height:100%;background:var(--accent);border-radius:3px;transition:width .8s cubic-bezier(.16,1,.3,1)}
+.bbcmp{font-size:10px;color:var(--dim);margin-top:2px}
 
-/* Book bars */
-.bbar-list{display:flex;flex-direction:column;gap:11px}
-.bbar-header{display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px}
-.bbar-name{font-weight:500}
-.bbar-val{font-weight:700;color:var(--accent)}
-.bbar-track{background:var(--surface2);border-radius:4px;height:7px;overflow:hidden}
-.bbar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .8s cubic-bezier(.16,1,.3,1)}
-.bbar-cmp{font-size:11px;color:var(--dim);margin-top:2px}
+/* ── Status donut ── */
+.slist{display:flex;flex-direction:column;gap:7px;margin-top:12px}
+.si{display:flex;align-items:center;gap:8px;padding:8px 11px;border-radius:8px;background:var(--surface2);font-size:12px}
+.sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sn{flex:1;font-weight:500}.sc{font-weight:700;font-size:14px}.sp{font-size:10px;color:var(--dim);margin-right:3px}
 
-/* Status */
-.slist{display:flex;flex-direction:column;gap:8px}
-.sitem{display:flex;align-items:center;gap:10px;padding:9px 13px;border-radius:9px;background:var(--surface2);font-size:13px}
-.sdotc{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.sname{flex:1;font-weight:500}
-.scnt{font-weight:700;font-size:15px}
-.spct{font-size:11px;color:var(--dim);margin-right:4px}
+/* ── City list ── */
+.citylist{display:flex;flex-direction:column;gap:0}
+.ci{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.ci:last-child{border-bottom:none}
+.ciname{font-weight:500}
+.cicnt{font-weight:700;color:var(--accent);background:var(--accent3);padding:1px 8px;border-radius:20px;font-size:11px}
 
-/* City list */
-.clist{display:flex;flex-direction:column;gap:7px}
-.citem{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px}
-.citem:last-child{border-bottom:none}
-.cname{font-weight:500}
-.ccnt{font-weight:700;color:var(--accent);background:var(--accent3);padding:2px 10px;border-radius:20px;font-size:12px}
+/* ── Alert items ── */
+.alist{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto}
+.ai{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;font-size:12px}
+.ai.warn{background:#fffbec;border:1px solid #f5e0a0}
+.ai.info{background:var(--accent3);border:1px solid #b7ddc6}
+.ai.blue{background:#eef2ff;border:1px solid #c0cdf7}
+.ai.red{background:#fdf0ef;border:1px solid #f0c0bc}
+.aiico{font-size:14px;flex-shrink:0}
+.ain{font-weight:600;flex:1}
+.aic{color:var(--muted);font-size:11px}
+.aempty{color:var(--muted);font-size:12px;padding:6px 0}
 
-/* Alert items */
-.alist{display:flex;flex-direction:column;gap:7px;max-height:320px;overflow-y:auto}
-.aitem{display:flex;align-items:center;gap:10px;padding:9px 13px;border-radius:9px;font-size:13px}
-.aitem.warn{background:#fff8e6;border:1px solid #f5e0a0}
-.aitem.info{background:#e8f4ec;border:1px solid #b7ddc6}
-.aitem.new{background:#e8f0ff;border:1px solid #b3c6f5}
-.aitem.danger{background:#fdf0ef;border:1px solid #f5c6c2}
-.aicon{font-size:15px;flex-shrink:0}
-.aname{font-weight:600;flex:1}
-.acity{color:var(--muted);font-size:12px}
-.aempty{color:var(--muted);font-size:13px;padding:8px 0}
-
-/* Filter bar */
-.fbar{display:flex;gap:8px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
-.finput{flex:1;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 13px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color .2s}
-.finput:focus{border-color:var(--accent)}
-.fsel{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:8px 13px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;cursor:pointer}
+/* ── Filter bar ── */
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.fi{flex:1;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color .2s}
+.fi:focus{border-color:var(--accent)}
+.fs{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px;font-family:'Heebo',sans-serif;font-size:12px;color:var(--text);outline:none;cursor:pointer}
 .fcnt{font-size:12px;color:var(--muted);white-space:nowrap}
 
-/* Table */
-.twrap{overflow-x:auto}
+/* ── Table ── */
+.twrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{background:var(--surface2);padding:9px 12px;text-align:right;font-weight:600;font-size:11px;letter-spacing:.03em;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+th{background:var(--surface2);padding:9px 11px;text-align:right;font-weight:600;font-size:10px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 11px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--surface2)}
+tr:hover td{background:var(--surface2);cursor:pointer}
+.tn{font-weight:600;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 
-/* Badges */
-.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+/* ── Badges ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap}
 .b-yes{background:#e6f4ec;color:#1a6b35;border:1px solid #b7ddc6}
-.b-no{background:#fff8e6;color:#7a5c00;border:1px solid #f5e0a0}
+.b-no{background:#fffbec;color:#7a5c00;border:1px solid #f5e0a0}
 .b-paid{background:#f0e6ff;color:#5a2d82;border:1px solid #d4b3f5}
-.b-new{background:#e8f0ff;color:#2d4fa0;border:1px solid #b3c6f5}
+.b-new{background:#eef2ff;color:#2d4fa0;border:1px solid #c0cdf7}
+.b-danger{background:#fdf0ef;color:var(--danger);border:1px solid #f0c0bc}
 
-/* Compare cards */
-.cmpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-.cmpc{background:var(--surface2);border-radius:11px;padding:13px 14px;text-align:center}
-.cmpbook{font-size:11px;font-weight:600;margin-bottom:7px;color:var(--text)}
-.cmpnums{display:flex;justify-content:space-around;margin-bottom:5px}
-.cmpnum{font-size:12px}
-.cmpnum span{display:block;font-size:17px;font-weight:900}
-.cmpnum small{font-size:10px;color:var(--dim)}
-.cmpdelta{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;display:inline-block}
+/* ── Compare ── */
+.cmpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.cmpc{background:var(--surface2);border-radius:10px;padding:12px 14px;text-align:center}
+.cmpb{font-size:11px;font-weight:600;margin-bottom:6px}
+.cmpn{display:flex;justify-content:space-around;margin-bottom:5px}
+.cmpni{font-size:11px}
+.cmpni span{display:block;font-size:16px;font-weight:900}
+.cmpni small{font-size:9px;color:var(--dim)}
+.cmpd{font-size:11px;font-weight:700;padding:1px 7px;border-radius:20px;display:inline-block}
 .dup{background:#e6f4ec;color:#1a6b35}
 .ddown{background:#fdf0ef;color:var(--danger)}
 .dsame{background:var(--surface2);color:var(--dim);border:1px solid var(--border)}
 
-/* Progress ring for supplied % */
-.ring-wrap{display:flex;align-items:center;gap:16px;margin-bottom:16px}
-.ring-label{font-size:13px;color:var(--muted)}
-.ring-pct{font-size:22px;font-weight:900;color:var(--accent)}
+/* ── Client Card (modal-style page) ── */
+#clientCard{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;backdrop-filter:blur(3px)}
+#clientCard.open{display:flex}
+.cc-box{background:var(--surface);border-radius:18px;width:100%;max-width:820px;box-shadow:0 24px 80px rgba(0,0,0,.2);overflow:hidden;margin:auto}
+.cc-head{background:var(--accent);color:#fff;padding:20px 24px;display:flex;align-items:center;justify-content:space-between}
+.cc-name{font-size:20px;font-weight:700}
+.cc-sub{font-size:12px;opacity:.7;margin-top:3px}
+.cc-close{background:rgba(255,255,255,.15);border:none;color:#fff;font-size:18px;cursor:pointer;padding:6px 10px;border-radius:8px;font-family:'Heebo',sans-serif}
+.cc-body{padding:24px}
+.cc-meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:20px}
+.cc-mitem{background:var(--surface2);border-radius:8px;padding:10px 14px}
+.cc-mlbl{font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
+.cc-mval{font-size:13px;font-weight:600;color:var(--text)}
+.cc-yr{margin-bottom:16px}
+.cc-yrtitle{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.cc-yrgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.cc-yritem{background:var(--surface2);border-radius:8px;padding:8px 12px;text-align:center}
+.cc-yrbook{font-size:10px;color:var(--muted);margin-bottom:3px}
+.cc-yrqty{font-size:18px;font-weight:900;color:var(--accent)}
+.cc-notes{background:var(--surface2);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;margin-top:12px}
+.cc-status{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+
+/* ── Boxes info ── */
+.boxinfo{font-size:13px;line-height:1.8}
+.birow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px}
+.birow:last-child{border-bottom:none}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="lo">
-  <div class="loader"></div>
-  <div class="ltxt" id="ltxt">טוען נתונים מגוגל שיטס...</div>
-</div>
+<div id="loader"><div class="spin"></div><div id="ltxt" style="font-size:13px;color:var(--muted)">טוען...</div></div>
 
-<div class="header">
-  <div>
-    <div class="htitle">📚 דשבורד מכירות ספרים</div>
-    <div class="hsub"><span class="sdot"></span>מחובר לגוגל שיטס בזמן אמת</div>
-  </div>
-  <div class="year-btns" id="ybtns"></div>
-</div>
+<header>
+  <div class="hlogo">📚 <span>מכירות ספרים</span> <span class="live-dot"></span></div>
+  <div class="hright" id="ybtns"></div>
+</header>
 
-<div class="main">
+<nav>
+  <button class="nv on" data-page="dash">📊 דשבורד</button>
+  <button class="nv" data-page="clients">🏫 לקוחות</button>
+  <button class="nv" data-page="compare">📈 השוואה</button>
+  <button class="nv" data-page="alerts">🔔 התראות</button>
+  <button class="nv" data-page="upload">📄 העלאת הזמנה</button>
+</nav>
+
+<main>
   <div class="err" id="err"></div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="sw('dashboard')">📊 דשבורד</button>
-    <button class="tab" onclick="sw('clients')">🏫 לקוחות</button>
-    <button class="tab" onclick="sw('compare')">📈 השוואה שנתית</button>
-    <button class="tab" onclick="sw('alerts')">🔔 התראות</button>
-  </div>
-
-  <!-- DASHBOARD -->
-  <div class="tab-panel active" id="tab-dashboard">
-    <div class="kpi-grid" id="kpis"></div>
+  <!-- ══ DASHBOARD ══ -->
+  <div class="page on" id="pg-dash">
+    <div class="kgrid" id="kgrid"></div>
     <div class="g2">
       <div class="card">
-        <div class="ctitle">כמויות לפי ספר <span class="cbadge" id="ylbl">—</span></div>
-        <div class="bbar-list" id="bbars"></div>
+        <div class="ctitle">ספרים שהוזמנו <span class="cbadge" id="ylbl">—</span></div>
+        <div id="bbars"></div>
       </div>
       <div class="card">
         <div class="ctitle">סטטוס אספקה</div>
-        <div style="max-width:220px;margin:0 auto 16px"><canvas id="schart"></canvas></div>
+        <div style="max-width:200px;margin:0 auto"><canvas id="sc"></canvas></div>
         <div class="slist" id="slist"></div>
       </div>
     </div>
-    <div class="g2">
+    <div class="g21">
       <div class="card">
-        <div class="ctitle">לקוחות לפי עיר <span class="cbadge" id="cityTotal"></span></div>
-        <div class="clist" id="clist"></div>
+        <div class="ctitle">לקוחות לפי עיר <span class="cbadge" id="ctotal"></span></div>
+        <div class="citylist" id="citylist"></div>
       </div>
+      <div class="card">
+        <div class="ctitle">📦 ארגזים לפי שליח</div>
+        <div class="boxinfo" id="boxinfo"></div>
+      </div>
+    </div>
+    <div class="g2">
       <div class="card">
         <div class="ctitle">⏳ לא סופקו עדיין</div>
         <div class="alist" id="nslist"></div>
       </div>
+      <div class="card">
+        <div class="ctitle">⚠️ פערים פתוחים</div>
+        <div class="alist" id="gaplist"></div>
+      </div>
     </div>
-    <div class="g3">
+    <div class="g2">
       <div class="card">
         <div class="ctitle">💰 סטטוס תשלומים</div>
         <div class="slist" id="paylist"></div>
       </div>
       <div class="card">
-        <div class="ctitle">📦 כמות ארגזים</div>
-        <div id="boxinfo" style="font-size:13px;line-height:2"></div>
-      </div>
-      <div class="card">
-        <div class="ctitle">📋 פערים פתוחים</div>
-        <div class="alist" id="gaplist"></div>
+        <div class="ctitle">💳 סופקו — לא שילמו</div>
+        <div class="alist" id="nopay"></div>
       </div>
     </div>
   </div>
 
-  <!-- CLIENTS -->
-  <div class="tab-panel" id="tab-clients">
+  <!-- ══ CLIENTS ══ -->
+  <div class="page" id="pg-clients">
     <div class="fbar">
-      <input class="finput" id="fsearch" placeholder="חיפוש לפי שם / עיר..." oninput="ft()"/>
-      <select class="fsel" id="fcity" onchange="ft()"><option value="">כל הערים</option></select>
-      <select class="fsel" id="fsupply" onchange="ft()">
+      <input class="fi" id="fs" placeholder="🔍 חיפוש שם / עיר..." oninput="ft()"/>
+      <select class="fs" id="fci" onchange="ft()"><option value="">כל הערים</option></select>
+      <select class="fs" id="fsu" onchange="ft()">
         <option value="">כל הסטטוסים</option>
-        <option value="yes">סופק</option>
-        <option value="no">לא סופק</option>
+        <option value="yes">✅ סופק</option>
+        <option value="no">⏳ לא סופק</option>
       </select>
-      <select class="fsel" id="fbook" onchange="ft()"><option value="">כל הספרים</option></select>
-      <select class="fsel" id="fpay" onchange="ft()">
+      <select class="fs" id="fbk" onchange="ft()"><option value="">כל הספרים</option></select>
+      <select class="fs" id="fpy" onchange="ft()">
         <option value="">כל התשלומים</option>
-        <option value="שולם">שולם</option>
-        <option value="לא שולם">לא שולם</option>
+        <option value="paid">💜 שולם</option>
+        <option value="notpaid">⏳ לא שולם</option>
       </select>
       <span class="fcnt" id="fcnt"></span>
     </div>
-    <div class="card">
-      <div class="twrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+    <div class="twrap">
+      <table><thead id="th"></thead><tbody id="tb"></tbody></table>
     </div>
   </div>
 
-  <!-- COMPARE -->
-  <div class="tab-panel" id="tab-compare">
-    <div class="card" style="margin-bottom:18px">
+  <!-- ══ COMPARE ══ -->
+  <div class="page" id="pg-compare">
+    <div class="card" style="margin-bottom:16px">
       <div class="ctitle">השוואה שנתית — כמויות לפי ספר</div>
-      <canvas id="cchart" height="100"></canvas>
+      <canvas id="cc" height="100"></canvas>
     </div>
     <div class="card">
       <div class="ctitle">פירוט לפי ספר</div>
-      <div class="cmpgrid" id="cmpgrid"></div>
+      <div class="cmpg" id="cmpg"></div>
     </div>
   </div>
 
-  <!-- ALERTS -->
-  <div class="tab-panel" id="tab-alerts">
-    <div class="g2" style="margin-bottom:18px">
+  <!-- ══ ALERTS ══ -->
+  <div class="page" id="pg-alerts">
+    <div class="g2" style="margin-bottom:16px">
       <div class="card">
         <div class="ctitle">🆕 לקוחות חדשים השנה</div>
         <div class="alist" id="newcl"></div>
@@ -269,310 +294,294 @@ tr:hover td{background:var(--surface2)}
         <div class="alist" id="gaps2"></div>
       </div>
       <div class="card">
-        <div class="ctitle">💳 ממתינים לתשלום</div>
-        <div class="alist" id="nopay"></div>
+        <div class="ctitle">💳 סופקו — לא שילמו</div>
+        <div class="alist" id="nopay2"></div>
       </div>
+    </div>
+  </div>
+  <!-- ══ UPLOAD ══ -->
+  <div class="page" id="pg-upload">
+    <div style="max-width:560px;margin:0 auto">
+      <div class="card" style="margin-bottom:16px">
+        <div class="ctitle">📄 העלאת טופס הזמנה</div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.7">
+          העלי טופס הזמנה בפורמט PDF. המערכת תחלץ אוטומטית את שם בית הספר, הספרים והכמויות,
+          ותציג לך תצוגה מקדימה לאישור לפני השמירה לגיליון תשפ"ז.
+        </p>
+        <div id="dropzone" onclick="document.getElementById('pdfInput').click()" 
+          style="border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)">
+          <div style="font-size:36px;margin-bottom:10px">📄</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:6px">לחצי להעלאת PDF</div>
+          <div style="font-size:12px;color:var(--muted)">או גררי קובץ לכאן</div>
+          <input type="file" id="pdfInput" accept=".pdf" style="display:none" onchange="handlePDF(this)"/>
+        </div>
+        <div id="uploadStatus" style="margin-top:14px;display:none"></div>
+      </div>
+
+      <!-- Preview card -->
+      <div class="card" id="previewCard" style="display:none">
+        <div class="ctitle">👁️ תצוגה מקדימה — אשרי לפני שמירה</div>
+        <div id="previewContent"></div>
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button onclick="approveOrder()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי לתשפ"ז</button>
+          <button onclick="rejectOrder()" style="padding:12px 20px;background:none;border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">❌ בטלי</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ══ CLIENT CARD MODAL ══ -->
+<div id="clientCard">
+  <div class="cc-box">
+    <div class="cc-head">
+      <div>
+        <div class="cc-name" id="ccName"></div>
+        <div class="cc-sub" id="ccSub"></div>
+      </div>
+      <button class="cc-close" onclick="closeCard()">✕</button>
+    </div>
+    <div class="cc-body">
+      <div class="cc-meta" id="ccMeta"></div>
+      <div id="ccYears"></div>
     </div>
   </div>
 </div>
 
 <script>
-// ══ CONFIGURATION ══
+// ══ CONFIG ══
 const SHEET_ID = '151HfnYDeUVQc7qbtr5bqkPgLtPOrWhIAJE0nsdqDq2o';
 const YEARS = [
-  { label:'תשפ"ז', tab:'מכירות לקראת תשפז' },
-  { label:'תשפ"ו', tab:'מכירות לקראת תשפו' },
-  { label:'תשפ"ה', tab:'מכירות לקראת תשפה ב"ה' },
+  {label:'תשפ"ז', tab:'מכירות לקראת תשפז'},
+  {label:'תשפ"ו', tab:'מכירות לקראת תשפו'},
+  {label:'תשפ"ה', tab:'מכירות לקראת תשפה ב"ה'},
 ];
-
-// ══ EXACT COLUMN NAMES ══
-const BOOKS = [
-  'ברוכה הבאה ה','ברוכה הבאה ו','חברה לעט',
-  'מתחברת למילים','זה כל הסיפור',"מבינה ענין ה'","מבינה ענין ד'",'כשתקראי תביני'
-];
-const COL = {
-  name:    'ארגון ספרי הלימוד',
-  city:    'עיר היעד',
-  supply:  'האם סופק?',
-  supplier:'סופק ע"י',
-  ship:    'משלוח ע"י',
-  boxes:   'כמות ארגזים',
-  notes:   'הערות',
-  gaps:    'פערים',
-  date:    'תאריך',
-  contact: 'איש קשר',
-  phone:   'מס פלאפון',
-  pay:     'תשלום',
-  paytype: 'אופן התשלום',
-  invoice: 'חשבונית על שם',
-  sample:  'חוברות לדוגמא',
-  guide:   'מדריך למורה',
-  booklet: 'חוברת למורה',
-  target:  'כתובת יעד',
+const BOOKS = ['ברוכה הבאה ה','ברוכה הבאה ו','חברה לעט','מתחברת למילים','זה כל הסיפור',"מבינה ענין ה'","מבינה ענין ד'",'כשתקראי תביני'];
+const C = {
+  name:'ארגון ספרי הלימוד', city:'עיר היעד', supply:'האם סופק?',
+  supplier:'סופק ע"י', ship:'משלוח ע"י', boxes:'כמות ארגזים',
+  notes:'הערות', gaps:'פערים', date:'תאריך', contact:'איש קשר',
+  phone:'מס פלאפון', pay:'תשלום', paytype:'אופן התשלום',
+  invoice:'חשבונית על שם', sample:'חוברות לדוגמא',
+  guide:'מדריך למורה', booklet:'חוברת למורה', target:'כתובת יעד',
+  school:'בת ספר',
 };
 
 // ══ STATE ══
-let data = {}, hdrs = {}, activeY = YEARS[1].label;
-let schartI=null, cchartI=null;
+let D={}, H={}, activeY=YEARS[1].label, scI=null, ccI=null, _trows=[];
 
 // ══ FETCH ══
-async function fetchTab(tab) {
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}`;
-  const res  = await fetch(url);
-  const text = await res.text();
-  const m    = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
-  if (!m) throw new Error('לא ניתן לפרסר תגובה מגוגל');
-  const json = JSON.parse(m[1]);
-  const cols = json.table.cols.map(c => c.label || '');
-  const rows = (json.table.rows||[]).map(r =>
-    Object.fromEntries(cols.map((c,i) => [c, r?.c?.[i]?.v ?? '']))
-  ).filter(r => r[COL.name] && String(r[COL.name]).trim());
-  return { cols, rows };
+async function fetchTab(tab){
+  const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}`;
+  const txt=await(await fetch(url)).text();
+  const m=txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+  if(!m)throw new Error('parse error');
+  const json=JSON.parse(m[1]);
+  const cols=json.table.cols.map(c=>c.label||'');
+  const rows=(json.table.rows||[]).map(r=>Object.fromEntries(cols.map((c,i)=>[c,r?.c?.[i]?.v??'']))).filter(r=>String(r[C.name]||'').trim());
+  return{cols,rows};
 }
 
 // ══ INIT ══
-async function init() {
-  buildYearBtns();
-  setLoading('טוען נתונים...');
-  let loaded = 0;
-  for (const y of YEARS) {
-    try {
-      setLoading(`טוען ${y.label}...`);
-      const {cols,rows} = await fetchTab(y.tab);
-      data[y.label] = rows;
-      hdrs[y.label] = cols;
-      loaded++;
-    } catch(e) {
-      console.warn('לא נטען:', y.tab, e.message);
-      data[y.label] = [];
-      hdrs[y.label] = [];
+async function init(){
+  buildYbtns();
+  setLtxt('טוען נתונים...');
+  let loaded=0;
+  for(const y of YEARS){
+    try{
+      setLtxt(`טוען ${y.label}...`);
+      const {cols,rows}=await fetchTab(y.tab);
+      D[y.label]=rows; H[y.label]=cols; loaded++;
+    }catch(e){
+      D[y.label]=[]; H[y.label]=[];
+      console.warn('skip',y.tab,e.message);
     }
   }
-  if (!loaded) { showErr('לא נטענו נתונים — וודאי ששיתפת את הגיליון לצפייה'); hideLoad(); return; }
-  // pick first year with data
-  const first = YEARS.find(y => data[y.label]?.length);
-  if (first) activeY = first.label;
-  updateYearBtns();
+  if(!loaded){showErr('לא נטענו נתונים — וודאי ששיתפת את הגיליון לצפייה (Anyone with link → Viewer)');hideLoader();return;}
+  const first=YEARS.find(y=>D[y.label]?.length);
+  if(first)activeY=first.label;
+  updYbtns();
   render();
-  hideLoad();
+  hideLoader();
 }
 
-function buildYearBtns() {
-  const c = document.getElementById('ybtns');
-  YEARS.forEach(y => {
-    const b = document.createElement('button');
-    b.className='ybtn'+(y.label===activeY?' active':'');
-    b.textContent=y.label;
-    b.dataset.label=y.label;
-    b.onclick=()=>{ activeY=y.label; updateYearBtns(); render(); };
+function buildYbtns(){
+  const c=document.getElementById('ybtns');
+  YEARS.forEach(y=>{
+    const b=document.createElement('button');
+    b.className='ybtn'+(y.label===activeY?' on':'');
+    b.textContent=y.label; b.dataset.y=y.label;
+    b.onclick=()=>{activeY=y.label;updYbtns();render();};
     c.appendChild(b);
   });
 }
-function updateYearBtns() {
-  document.querySelectorAll('.ybtn').forEach(b=>b.classList.toggle('active',b.dataset.label===activeY));
-}
+function updYbtns(){document.querySelectorAll('.ybtn').forEach(b=>b.classList.toggle('on',b.dataset.y===activeY));}
 
 // ══ HELPERS ══
-function isSupplied(r) {
-  const v = String(r[COL.supply]||'').trim().toLowerCase();
-  return v==='כן'||v==='סופק'||v==='true'||v==='1'||v.includes('סופק');
-}
-function isPaid(r) {
-  const v = String(r[COL.pay]||'').trim().toLowerCase();
-  return v==='שולם'||v==='כן'||v==='true';
-}
-function bookQty(r,book) { return Number(r[book])||0; }
-function totalBooks(rows,books) { return rows.reduce((s,r)=>s+books.reduce((ss,b)=>ss+bookQty(r,b),0),0); }
-
-function prevYear() { const i=YEARS.findIndex(y=>y.label===activeY); return YEARS[i+1]?.label||null; }
+function isSup(r){const v=String(r[C.supply]||'').toLowerCase().trim();return v==='כן'||v.includes('סופק')||v==='true'||v==='1';}
+function isPaid(r){const v=String(r[C.pay]||'').toLowerCase().trim();return v==='שולם'||v==='כן'||v==='true';}
+function bqty(r,b){return Number(r[b])||0;}
+function tbooks(rows){return rows.reduce((s,r)=>s+BOOKS.reduce((ss,b)=>ss+bqty(r,b),0),0);}
+function prevY(){const i=YEARS.findIndex(y=>y.label===activeY);return i<YEARS.length-1?YEARS[i+1].label:null;}
+function aitem(cls,ico,name,sub){return`<div class="ai ${cls}"><span class="aiico">${ico}</span><span class="ain">${name}</span><span class="aic">${sub||''}</span></div>`;}
+function aempty(txt){return`<div class="aempty">${txt}</div>`;}
 
 // ══ RENDER ══
-function render() {
-  const rows = data[activeY]||[];
-  const prev = data[prevYear()]||[];
-  document.getElementById('ylbl').textContent = activeY;
+function render(){
+  const rows=D[activeY]||[], prev=D[prevY()]||[];
+  document.getElementById('ylbl').textContent=activeY;
   renderKPIs(rows,prev);
-  renderBookBars(rows,prev);
+  renderBars(rows,prev);
   renderStatus(rows);
   renderCities(rows);
-  renderNotSupplied(rows);
-  renderPayments(rows);
   renderBoxes(rows);
+  renderNS(rows);
   renderGaps(rows);
+  renderPay(rows);
+  renderNoPay(rows);
   renderClientsTab(rows);
   renderCompare(rows,prev);
   renderAlerts(rows,prev);
 }
 
 // ── KPIs ──
-function renderKPIs(rows,prev) {
-  const total   = rows.length;
-  const supplied= rows.filter(isSupplied).length;
-  const paid    = rows.filter(isPaid).length;
-  const tb      = totalBooks(rows,BOOKS);
-  const ptb     = totalBooks(prev,BOOKS);
-  const delta   = ptb?Math.round((tb-ptb)/ptb*100):null;
-  const guides  = Math.floor(tb/40);
-  const pct     = total?Math.round(supplied/total*100):0;
-
-  document.getElementById('kpis').innerHTML=`
-    <div class="kpi accent"><div class="klabel">סה"כ לקוחות</div><div class="kval">${total}</div><div class="ksub">${activeY}</div></div>
-    <div class="kpi"><div class="klabel">סה"כ ספרים</div><div class="kval">${tb.toLocaleString()}</div>${delta!==null?`<div class="kdelta ${delta>=0?'up':'down'}">${delta>=0?'▲':'▼'} ${Math.abs(delta)}% משנה קודמת</div>`:'<div class="ksub">אין השוואה</div>'}</div>
-    <div class="kpi"><div class="klabel">סופקו</div><div class="kval" style="color:var(--accent2)">${supplied}</div><div class="ksub">${pct}% מהלקוחות</div></div>
-    <div class="kpi"><div class="klabel">ממתינים</div><div class="kval" style="color:var(--gold)">${total-supplied}</div><div class="ksub">לא סופקו עדיין</div></div>
-    <div class="kpi"><div class="klabel">שילמו</div><div class="kval" style="color:#5a2d82">${paid}</div><div class="ksub">${total?Math.round(paid/total*100):0}% מהלקוחות</div></div>
-    <div class="kpi gold"><div class="klabel">מדריכים למורה</div><div class="kval">${guides}</div><div class="ksub">כל 40 ספרים = 1</div></div>
+function renderKPIs(rows,prev){
+  const n=rows.length, sup=rows.filter(isSup).length, paid=rows.filter(isPaid).length;
+  const tb=tbooks(rows), ptb=tbooks(prev);
+  const d=ptb?Math.round((tb-ptb)/ptb*100):null;
+  const g=Math.floor(tb/40);
+  document.getElementById('kgrid').innerHTML=`
+    <div class="kcard green"><div class="klbl">לקוחות</div><div class="knum">${n}</div><div class="ksub">${activeY}</div></div>
+    <div class="kcard"><div class="klbl">ספרים</div><div class="knum">${tb.toLocaleString()}</div>${d!==null?`<div class="kdelta ${d>=0?'up':'down'}">${d>=0?'▲':'▼'}${Math.abs(d)}% משנה קודמת</div>`:'<div class="ksub">—</div>'}</div>
+    <div class="kcard"><div class="klbl">סופקו</div><div class="knum" style="color:var(--accent2)">${sup}</div><div class="ksub">${n?Math.round(sup/n*100):0}%</div></div>
+    <div class="kcard"><div class="klbl">ממתינים</div><div class="knum" style="color:var(--gold)">${n-sup}</div><div class="ksub">לא סופקו</div></div>
+    <div class="kcard"><div class="klbl">שילמו</div><div class="knum" style="color:#5a2d82">${paid}</div><div class="ksub">${n?Math.round(paid/n*100):0}%</div></div>
+    <div class="kcard gold"><div class="klbl">מדריכים</div><div class="knum">${g}</div><div class="ksub">כל 40 = 1</div></div>
   `;
 }
 
-// ── Book bars ──
-function renderBookBars(rows,prev) {
-  const py = prevYear();
-  const items = BOOKS.map(b=>{
-    const q  = rows.reduce((s,r)=>s+bookQty(r,b),0);
-    const pq = prev.reduce((s,r)=>s+bookQty(r,b),0);
-    return {b,q,pq};
-  }).filter(i=>i.q>0).sort((a,b2)=>b2.q-a.q);
-  const max=Math.max(...items.map(i=>i.q),1);
+// ── Bars ──
+function renderBars(rows,prev){
+  const py=prevY(), prows=prev;
+  const items=BOOKS.map(b=>({b,q:rows.reduce((s,r)=>s+bqty(r,b),0),pq:prows.reduce((s,r)=>s+bqty(r,b),0)})).filter(i=>i.q>0).sort((a,b2)=>b2.q-a.q);
+  const mx=Math.max(...items.map(i=>i.q),1);
   document.getElementById('bbars').innerHTML=items.map(i=>{
     const d=i.pq?Math.round((i.q-i.pq)/i.pq*100):null;
-    return`<div>
-      <div class="bbar-header"><span class="bbar-name">${i.b}</span><span class="bbar-val">${i.q.toLocaleString()}</span></div>
-      <div class="bbar-track"><div class="bbar-fill" style="width:${Math.round(i.q/max*100)}%"></div></div>
-      ${d!==null?`<div class="bbar-cmp">${d>=0?'▲':'▼'} ${Math.abs(d)}% מ-${py} (${i.pq.toLocaleString()})</div>`:''}
-    </div>`;
+    return`<div class="bbar"><div class="bbhead"><span class="bbname">${i.b}</span><span class="bbval">${i.q.toLocaleString()}</span></div><div class="bbt"><div class="bbf" style="width:${Math.round(i.q/mx*100)}%"></div></div>${d!==null?`<div class="bbcmp">${d>=0?'▲':'▼'}${Math.abs(d)}% מ-${py} (${i.pq.toLocaleString()})</div>`:''}</div>`;
   }).join('');
 }
 
-// ── Status ──
-function renderStatus(rows) {
-  const counts={};
-  rows.forEach(r=>{
-    const v=isSupplied(r)?'סופק':'לא סופק';
-    counts[v]=(counts[v]||0)+1;
-  });
-  const labels=Object.keys(counts), vals=Object.values(counts);
-  const colors=['#2d5a3d','#c9a84c','#c0392b','#4a8c5c'];
-  if(schartI)schartI.destroy();
-  schartI=new Chart(document.getElementById('schart').getContext('2d'),{
+// ── Status donut ──
+function renderStatus(rows){
+  const sup=rows.filter(isSup).length, ns=rows.length-sup;
+  const labels=['סופק','לא סופק'], vals=[sup,ns], colors=['#2d5a3d','#c9a84c'];
+  if(scI)scI.destroy();
+  scI=new Chart(document.getElementById('sc').getContext('2d'),{
     type:'doughnut',
-    data:{labels,datasets:[{data:vals,backgroundColor:colors.slice(0,labels.length),borderWidth:2,borderColor:'#fff'}]},
-    options:{plugins:{legend:{display:false}},cutout:'68%'}
+    data:{labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},
+    options:{plugins:{legend:{display:false}},cutout:'70%'}
   });
-  const total=rows.length;
+  const total=rows.length||1;
   document.getElementById('slist').innerHTML=labels.map((l,i)=>
-    `<div class="sitem"><div class="sdotc" style="background:${colors[i]}"></div><span class="sname">${l}</span><span class="spct">${Math.round(vals[i]/total*100)}%</span><span class="scnt">${vals[i]}</span></div>`
+    `<div class="si"><div class="sdot" style="background:${colors[i]}"></div><span class="sn">${l}</span><span class="sp">${Math.round(vals[i]/total*100)}%</span><span class="sc">${vals[i]}</span></div>`
   ).join('');
 }
 
 // ── Cities ──
-function renderCities(rows) {
-  const counts={};
-  rows.forEach(r=>{ const c=String(r[COL.city]||'').trim()||'לא ידוע'; counts[c]=(counts[c]||0)+1; });
-  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('cityTotal').textContent=`${sorted.length} ערים`;
-  document.getElementById('clist').innerHTML=sorted.slice(0,12).map(([c,n])=>
-    `<div class="citem"><span class="cname">${c}</span><span class="ccnt">${n}</span></div>`
-  ).join('');
-}
-
-// ── Not supplied ──
-function renderNotSupplied(rows) {
-  const ns=rows.filter(r=>!isSupplied(r));
-  document.getElementById('nslist').innerHTML=ns.length?ns.slice(0,10).map(r=>
-    `<div class="aitem warn"><span class="aicon">⏳</span><span class="aname">${r[COL.name]||'—'}</span><span class="acity">${r[COL.city]||''}</span></div>`
-  ).join(''):`<div class="aempty">הכל סופק! 🎉</div>`;
-}
-
-// ── Payments ──
-function renderPayments(rows) {
-  const counts={};
-  rows.forEach(r=>{ const v=String(r[COL.pay]||'לא ידוע').trim()||'לא ידוע'; counts[v]=(counts[v]||0)+1; });
-  const colors=['#2d5a3d','#c9a84c','#c0392b','#4a8c5c','#9b9b7a'];
-  const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  const total=rows.length;
-  document.getElementById('paylist').innerHTML=entries.map(([v,n],i)=>
-    `<div class="sitem"><div class="sdotc" style="background:${colors[i%colors.length]}"></div><span class="sname">${v}</span><span class="spct">${Math.round(n/total*100)}%</span><span class="scnt">${n}</span></div>`
+function renderCities(rows){
+  const m={};
+  rows.forEach(r=>{const c=String(r[C.city]||'').trim()||'לא ידוע';m[c]=(m[c]||0)+1;});
+  const s=Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('ctotal').textContent=`${s.length} ערים`;
+  document.getElementById('citylist').innerHTML=s.slice(0,14).map(([c,n])=>
+    `<div class="ci"><span class="ciname">${c}</span><span class="cicnt">${n}</span></div>`
   ).join('');
 }
 
 // ── Boxes ──
-function renderBoxes(rows) {
-  const total=rows.reduce((s,r)=>s+(Number(r[COL.boxes])||0),0);
-  const byShip={};
-  rows.forEach(r=>{ if(r[COL.ship]){ const v=String(r[COL.ship]).trim(); byShip[v]=(byShip[v]||0)+(Number(r[COL.boxes])||0); }});
+function renderBoxes(rows){
+  const total=rows.reduce((s,r)=>s+(Number(r[C.boxes])||0),0);
+  const m={};
+  rows.forEach(r=>{if(r[C.ship]){const v=String(r[C.ship]).trim();m[v]=(m[v]||0)+(Number(r[C.boxes])||0);}});
   document.getElementById('boxinfo').innerHTML=
-    `<div style="font-size:26px;font-weight:900;color:var(--accent);margin-bottom:8px">${total}</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">ארגזים סה"כ</div>`+
-    Object.entries(byShip).map(([s,n])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:13px"><span>${s}</span><span style="font-weight:700">${n}</span></div>`).join('');
+    `<div style="font-size:24px;font-weight:900;color:var(--accent)">${total}</div><div style="font-size:11px;color:var(--muted);margin-bottom:10px">ארגזים סה"כ</div>`+
+    Object.entries(m).map(([s,n])=>`<div class="birow"><span>${s}</span><span style="font-weight:700">${n}</span></div>`).join('');
+}
+
+// ── Not supplied ──
+function renderNS(rows){
+  const ns=rows.filter(r=>!isSup(r));
+  document.getElementById('nslist').innerHTML=ns.length?ns.slice(0,10).map(r=>aitem('warn','⏳',r[C.name]||'—',r[C.city]||'')).join(''):aempty('הכל סופק! 🎉');
 }
 
 // ── Gaps ──
-function renderGaps(rows) {
-  const gaps=rows.filter(r=>r[COL.gaps]&&String(r[COL.gaps]).trim());
-  document.getElementById('gaplist').innerHTML=gaps.length?gaps.slice(0,8).map(r=>
-    `<div class="aitem warn"><span class="aicon">⚠️</span><span class="aname">${r[COL.name]||'—'}</span><span class="acity">${String(r[COL.gaps]).slice(0,30)}</span></div>`
-  ).join(''):`<div class="aempty">אין פערים פתוחים ✅</div>`;
+function renderGaps(rows){
+  const g=rows.filter(r=>r[C.gaps]&&String(r[C.gaps]).trim());
+  document.getElementById('gaplist').innerHTML=g.length?g.slice(0,8).map(r=>aitem('warn','⚠️',r[C.name]||'—',String(r[C.gaps]).slice(0,30))).join(''):aempty('אין פערים ✅');
 }
 
-// ── Clients Table ──
-function renderClientsTab(rows) {
-  const cities=[...new Set(rows.map(r=>String(r[COL.city]||'').trim()).filter(Boolean))].sort();
-  const cf=document.getElementById('fcity');
-  const cv=cf.value;
+// ── Payments ──
+function renderPay(rows){
+  const m={};
+  rows.forEach(r=>{const v=String(r[C.pay]||'לא ידוע').trim()||'לא ידוע';m[v]=(m[v]||0)+1;});
+  const colors=['#2d5a3d','#c9a84c','#c0392b','#4a8c5c','#9b9b7a'];
+  const total=rows.length||1;
+  document.getElementById('paylist').innerHTML=Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([v,n],i)=>
+    `<div class="si"><div class="sdot" style="background:${colors[i%colors.length]}"></div><span class="sn">${v}</span><span class="sp">${Math.round(n/total*100)}%</span><span class="sc">${n}</span></div>`
+  ).join('');
+}
+
+// ── No pay ──
+function renderNoPay(rows){
+  const np=rows.filter(r=>isSup(r)&&!isPaid(r));
+  const el=(id)=>document.getElementById(id);
+  const html=np.length?np.slice(0,8).map(r=>aitem('red','💳',r[C.name]||'—',r[C.city]||'')).join(''):aempty('הכל שולם! 🎉');
+  el('nopay').innerHTML=html; el('nopay2').innerHTML=html;
+}
+
+// ── Clients table ──
+function renderClientsTab(rows){
+  const cities=[...new Set(rows.map(r=>String(r[C.city]||'').trim()).filter(Boolean))].sort();
+  const cf=document.getElementById('fci'), cv=cf.value;
   cf.innerHTML='<option value="">כל הערים</option>'+cities.map(c=>`<option value="${c}" ${c===cv?'selected':''}>${c}</option>`).join('');
-
-  const bf=document.getElementById('fbook');
-  const bv=bf.value;
+  const bf=document.getElementById('fbk'), bv=bf.value;
   bf.innerHTML='<option value="">כל הספרים</option>'+BOOKS.map(b=>`<option value="${b}" ${b===bv?'selected':''}>${b}</option>`).join('');
-
-  window._trows=rows;
-  ft();
+  _trows=rows; ft();
 }
 
-function ft() {
-  const rows=window._trows||[];
-  const q=(document.getElementById('fsearch').value||'').toLowerCase();
-  const city=document.getElementById('fcity').value;
-  const sup=document.getElementById('fsupply').value;
-  const book=document.getElementById('fbook').value;
-  const pay=document.getElementById('fpay').value;
-
-  const filtered=rows.filter(r=>{
-    if(q&&!String(r[COL.name]||'').toLowerCase().includes(q)&&!String(r[COL.city]||'').toLowerCase().includes(q))return false;
-    if(city&&String(r[COL.city]||'').trim()!==city)return false;
-    if(sup==='yes'&&!isSupplied(r))return false;
-    if(sup==='no'&&isSupplied(r))return false;
-    if(book&&!(bookQty(r,book)>0))return false;
-    if(pay==='שולם'&&!isPaid(r))return false;
-    if(pay==='לא שולם'&&isPaid(r))return false;
+function ft(){
+  const rows=_trows, q=(document.getElementById('fs').value||'').toLowerCase();
+  const city=document.getElementById('fci').value, sup=document.getElementById('fsu').value;
+  const book=document.getElementById('fbk').value, pay=document.getElementById('fpy').value;
+  const f=rows.filter(r=>{
+    if(q&&!String(r[C.name]||'').toLowerCase().includes(q)&&!String(r[C.city]||'').toLowerCase().includes(q))return false;
+    if(city&&String(r[C.city]||'').trim()!==city)return false;
+    if(sup==='yes'&&!isSup(r))return false;
+    if(sup==='no'&&isSup(r))return false;
+    if(book&&!(bqty(r,book)>0))return false;
+    if(pay==='paid'&&!isPaid(r))return false;
+    if(pay==='notpaid'&&isPaid(r))return false;
     return true;
   });
-
-  document.getElementById('fcnt').textContent=`${filtered.length} לקוחות`;
-
-  const dispCols=[COL.name,COL.city,...BOOKS,COL.supply,COL.pay,COL.boxes,COL.ship,COL.gaps,COL.notes];
-  document.getElementById('thead').innerHTML='<tr>'+dispCols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
-  document.getElementById('tbody').innerHTML=filtered.map(r=>'<tr>'+dispCols.map(c=>{
+  document.getElementById('fcnt').textContent=`${f.length} לקוחות`;
+  const cols=[C.name,C.city,...BOOKS,C.supply,C.pay,C.boxes,C.ship,C.notes];
+  document.getElementById('th').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
+  document.getElementById('tb').innerHTML=f.map(r=>`<tr onclick="openCard('${encodeURIComponent(String(r[C.name]||'').trim())}')">`+cols.map(c=>{
     const v=r[c]??'';
-    if(c===COL.supply)return`<td><span class="badge ${isSupplied(r)?'b-yes':'b-no'}">${v||'—'}</span></td>`;
-    if(c===COL.pay)return`<td><span class="badge ${isPaid(r)?'b-paid':'b-no'}">${v||'—'}</span></td>`;
+    if(c===C.name)return`<td><span class="tn">${v||'—'}</span></td>`;
+    if(c===C.supply)return`<td><span class="badge ${isSup(r)?'b-yes':'b-no'}">${v||'—'}</span></td>`;
+    if(c===C.pay)return`<td><span class="badge ${isPaid(r)?'b-paid':'b-no'}">${v||'—'}</span></td>`;
     if(BOOKS.includes(c))return`<td style="text-align:center;font-weight:${Number(v)>0?700:400};color:${Number(v)>0?'var(--accent)':'var(--dim)'}">${Number(v)>0?v:'—'}</td>`;
     return`<td>${v||'—'}</td>`;
   }).join('')+'</tr>').join('');
 }
 
 // ── Compare ──
-function renderCompare(rows,prev) {
-  const py=prevYear();
-  const items=BOOKS.map(b=>({
-    b,
-    q:rows.reduce((s,r)=>s+bookQty(r,b),0),
-    pq:prev.reduce((s,r)=>s+bookQty(r,b),0)
-  }));
-
-  if(cchartI)cchartI.destroy();
-  cchartI=new Chart(document.getElementById('cchart').getContext('2d'),{
+function renderCompare(rows,prev){
+  const py=prevY();
+  const items=BOOKS.map(b=>({b,q:rows.reduce((s,r)=>s+bqty(r,b),0),pq:prev.reduce((s,r)=>s+bqty(r,b),0)}));
+  if(ccI)ccI.destroy();
+  ccI=new Chart(document.getElementById('cc').getContext('2d'),{
     type:'bar',
     data:{
       labels:items.map(i=>i.b.length>10?i.b.slice(0,10)+'…':i.b),
@@ -583,68 +592,236 @@ function renderCompare(rows,prev) {
     },
     options:{plugins:{legend:{position:'top'}},scales:{y:{beginAtZero:true}},responsive:true}
   });
-
-  document.getElementById('cmpgrid').innerHTML=items.map(i=>{
+  document.getElementById('cmpg').innerHTML=items.map(i=>{
     const d=i.pq?Math.round((i.q-i.pq)/i.pq*100):null;
-    const dc=d===null?'dsame':d>0?'dup':'ddown';
-    const dt=d===null?'—':d>0?`▲ ${d}%`:`▼ ${Math.abs(d)}%`;
-    return`<div class="cmpc">
-      <div class="cmpbook">${i.b}</div>
-      <div class="cmpnums">
-        <div class="cmpnum"><span style="color:var(--accent)">${i.q}</span><small>${activeY}</small></div>
-        <div class="cmpnum"><span style="color:var(--gold)">${i.pq}</span><small>${py||'קודם'}</small></div>
-      </div>
-      <span class="cmpdelta ${dc}">${dt}</span>
-    </div>`;
+    return`<div class="cmpc"><div class="cmpb">${i.b}</div><div class="cmpn"><div class="cmpni"><span style="color:var(--accent)">${i.q}</span><small>${activeY}</small></div><div class="cmpni"><span style="color:var(--gold)">${i.pq}</span><small>${py||'—'}</small></div></div><span class="cmpd ${d===null?'dsame':d>0?'dup':'ddown'}">${d===null?'—':d>0?`▲${d}%`:`▼${Math.abs(d)}%`}</span></div>`;
   }).join('');
 }
 
 // ── Alerts ──
-function renderAlerts(rows,prev) {
-  const prevNames=new Set(prev.map(r=>String(r[COL.name]||'').trim()));
-  const newCl=rows.filter(r=>r[COL.name]&&!prevNames.has(String(r[COL.name]).trim()));
-  document.getElementById('newcl').innerHTML=newCl.length?newCl.slice(0,10).map(r=>
-    `<div class="aitem new"><span class="aicon">🆕</span><span class="aname">${r[COL.name]}</span><span class="acity">${r[COL.city]||''}</span></div>`
-  ).join(''):`<div class="aempty">אין לקוחות חדשים</div>`;
+function renderAlerts(rows,prev){
+  const prevNames=new Set(prev.map(r=>String(r[C.name]||'').trim()));
+  const newCl=rows.filter(r=>r[C.name]&&!prevNames.has(String(r[C.name]).trim()));
+  document.getElementById('newcl').innerHTML=newCl.length?newCl.map(r=>aitem('blue','🆕',r[C.name],r[C.city]||'')).join(''):aempty('אין לקוחות חדשים');
 
-  const py=prevYear();
-  const pvRows=data[py]||[];
-  const veteran=[];
+  const pvRows=prev; const veteran=[];
   rows.forEach(r=>{
-    if(!prevNames.has(String(r[COL.name]||'').trim()))return;
+    if(!prevNames.has(String(r[C.name]||'').trim()))return;
     BOOKS.forEach(b=>{
-      const hadPrev=pvRows.some(pr=>String(pr[COL.name]).trim()===String(r[COL.name]).trim()&&bookQty(pr,b)>0);
-      if(!hadPrev&&bookQty(r,b)>0)veteran.push({name:r[COL.name],city:r[COL.city],book:b});
+      const had=pvRows.some(pr=>String(pr[C.name]).trim()===String(r[C.name]).trim()&&bqty(pr,b)>0);
+      if(!had&&bqty(r,b)>0)veteran.push({name:r[C.name],book:b});
     });
   });
-  document.getElementById('newbk').innerHTML=veteran.length?veteran.slice(0,8).map(v=>
-    `<div class="aitem warn"><span class="aicon">📗</span><span class="aname">${v.name}</span><span class="acity">${v.book}</span></div>`
-  ).join(''):`<div class="aempty">אין</div>`;
+  document.getElementById('newbk').innerHTML=veteran.length?veteran.map(v=>aitem('warn','📗',v.name,v.book)).join(''):aempty('אין');
 
-  const gaps=rows.filter(r=>r[COL.gaps]&&String(r[COL.gaps]).trim());
-  document.getElementById('gaps2').innerHTML=gaps.length?gaps.slice(0,8).map(r=>
-    `<div class="aitem warn"><span class="aicon">⚠️</span><span class="aname">${r[COL.name]||'—'}</span><span class="acity">${String(r[COL.gaps]).slice(0,35)}</span></div>`
-  ).join(''):`<div class="aempty">אין פערים ✅</div>`;
-
-  const nopay=rows.filter(r=>!isPaid(r)&&isSupplied(r));
-  document.getElementById('nopay').innerHTML=nopay.length?nopay.slice(0,8).map(r=>
-    `<div class="aitem danger"><span class="aicon">💳</span><span class="aname">${r[COL.name]||'—'}</span><span class="acity">${r[COL.city]||''}</span></div>`
-  ).join(''):`<div class="aempty">הכל שולם! 🎉</div>`;
+  const gaps=rows.filter(r=>r[C.gaps]&&String(r[C.gaps]).trim());
+  document.getElementById('gaps2').innerHTML=gaps.length?gaps.map(r=>aitem('warn','⚠️',r[C.name]||'—',String(r[C.gaps]).slice(0,35))).join(''):aempty('אין פערים ✅');
 }
 
-// ── Tab switch ──
-function sw(name) {
-  const names=['dashboard','clients','compare','alerts'];
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',names[i]===name));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+name));
+// ══ CLIENT CARD ══
+function openCard(encoded){
+  const name=decodeURIComponent(encoded);
+  document.getElementById('ccName').textContent=name;
+
+  // Gather data across all years
+  const yearData=[];
+  for(const y of YEARS){
+    const rows=D[y.label]||[];
+    const r=rows.find(r=>String(r[C.name]||'').trim()===name);
+    if(r)yearData.push({year:y.label,r});
+  }
+  if(!yearData.length)return;
+  const latest=yearData[0].r;
+
+  // Sub title
+  document.getElementById('ccSub').textContent=`${latest[C.city]||''} ${latest[C.school]?'| '+latest[C.school]:''}`;
+
+  // Meta
+  const meta=[
+    {l:'עיר',v:latest[C.city]},
+    {l:'כתובת',v:latest[C.target]},
+    {l:'איש קשר',v:latest[C.contact]},
+    {l:'טלפון',v:latest[C.phone]},
+    {l:'חשבונית על שם',v:latest[C.invoice]},
+    {l:'שליח',v:latest[C.ship]},
+  ].filter(m=>m.v);
+  document.getElementById('ccMeta').innerHTML=meta.map(m=>`<div class="cc-mitem"><div class="cc-mlbl">${m.l}</div><div class="cc-mval">${m.v}</div></div>`).join('');
+
+  // Years history
+  document.getElementById('ccYears').innerHTML=yearData.map(({year,r})=>{
+    const books=BOOKS.filter(b=>bqty(r,b)>0);
+    const sup=isSup(r), paid=isPaid(r);
+    return`<div class="cc-yr">
+      <div class="cc-yrtitle">📅 ${year}
+        <span class="badge ${sup?'b-yes':'b-no'}" style="margin-right:8px">${sup?'סופק':'לא סופק'}</span>
+        <span class="badge ${paid?'b-paid':'b-no'}">${paid?'שולם':'לא שולם'}</span>
+        ${r[C.boxes]?`<span style="font-size:11px;color:var(--muted);margin-right:8px">📦 ${r[C.boxes]} ארגזים</span>`:''}
+      </div>
+      <div class="cc-yrgrid">${books.map(b=>`<div class="cc-yritem"><div class="cc-yrbook">${b}</div><div class="cc-yrqty">${bqty(r,b)}</div></div>`).join('')||'<div style="color:var(--muted);font-size:12px">אין הזמנה</div>'}</div>
+      ${r[C.notes]?`<div class="cc-notes">💬 ${r[C.notes]}</div>`:''}
+      ${r[C.gaps]?`<div class="cc-notes" style="background:#fffbec;border:1px solid #f5e0a0">⚠️ פערים: ${r[C.gaps]}</div>`:''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('clientCard').classList.add('open');
+  document.body.style.overflow='hidden';
 }
 
-// ── UI helpers ──
-function setLoading(msg){document.getElementById('ltxt').textContent=msg;document.getElementById('lo').classList.remove('hidden')}
-function hideLoad(){document.getElementById('lo').classList.add('hidden')}
-function showErr(msg){const e=document.getElementById('err');e.style.display='block';e.textContent='⚠️ '+msg}
+function closeCard(){
+  document.getElementById('clientCard').classList.remove('open');
+  document.body.style.overflow='';
+}
+document.getElementById('clientCard').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCard();});
+
+// ══ NAV ══
+document.querySelectorAll('.nv').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.nv').forEach(n=>n.classList.remove('on'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+    b.classList.add('on');
+    document.getElementById('pg-'+b.dataset.page).classList.add('on');
+  };
+});
+
+// ══ HELPERS ══
+function setLtxt(t){document.getElementById('ltxt').textContent=t;}
+function hideLoader(){document.getElementById('loader').classList.add('hide');}
+function showErr(m){const e=document.getElementById('err');e.style.display='block';e.textContent='⚠️ '+m;}
 
 init();
+
+// ══ PDF UPLOAD ══
+const UPLOAD_WEBHOOK = 'https://hook.eu2.make.com/hheatnr5psu19135roiu2atn9c38awx5';
+let pendingOrder = null;
+
+// Drag & drop
+const dz = document.getElementById('dropzone');
+if(dz){
+  dz.addEventListener('dragover', e=>{e.preventDefault();dz.style.borderColor='var(--accent)';dz.style.background='var(--accent3)';});
+  dz.addEventListener('dragleave', ()=>{dz.style.borderColor='var(--border)';dz.style.background='var(--surface2)';});
+  dz.addEventListener('drop', e=>{
+    e.preventDefault();
+    dz.style.borderColor='var(--border)';dz.style.background='var(--surface2)';
+    const file=e.dataTransfer.files[0];
+    if(file&&file.type==='application/pdf')processPDF(file);
+    else showUploadStatus('error','❌ אנא העלי קובץ PDF בלבד');
+  });
+}
+
+function handlePDF(input){
+  const file=input.files[0];
+  if(file)processPDF(file);
+}
+
+async function processPDF(file){
+  showUploadStatus('loading',`⏳ מעבד את הקובץ: ${file.name}...`);
+  document.getElementById('previewCard').style.display='none';
+
+  try {
+    const fd = new FormData();
+    fd.append('file', file, file.name);
+    fd.append('action', 'extract');
+
+    const res = await fetch(UPLOAD_WEBHOOK, {method:'POST', body:fd});
+    const text = await res.text();
+
+    let data;
+    try { data = JSON.parse(text); } catch(e) { data = {raw: text}; }
+
+    if(data.error){
+      showUploadStatus('error','❌ שגיאה: '+data.error);
+      return;
+    }
+
+    // Store and show preview
+    pendingOrder = data;
+    showPreview(data);
+    showUploadStatus('success','✅ הקובץ עובד בהצלחה — אשרי את ההזמנה למטה');
+  } catch(e) {
+    showUploadStatus('error','❌ שגיאת חיבור: '+e.message);
+  }
+}
+
+function showPreview(data){
+  const card = document.getElementById('previewCard');
+  const content = document.getElementById('previewContent');
+  card.style.display='block';
+
+  const books = data.books || [];
+  const booksHtml = books.length ? `
+    <div style="margin-top:12px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">ספרים שהוזמנו</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">
+        ${books.map(b=>`<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${b.name}</div>
+          <div style="font-size:20px;font-weight:900;color:var(--accent)">${b.qty}</div>
+        </div>`).join('')}
+      </div>
+    </div>` : '<div style="color:var(--muted);font-size:13px;margin-top:12px">לא זוהו ספרים — בדקי ידנית</div>';
+
+  content.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 14px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">בית ספר</div>
+        <div style="font-size:14px;font-weight:700">${data.school||'לא זוהה'}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:8px;padding:10px 14px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">תאריך</div>
+        <div style="font-size:14px;font-weight:700">${data.date||new Date().toLocaleDateString('he-IL')}</div>
+      </div>
+    </div>
+    ${data.contact?`<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:4px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">איש קשר</div>
+      <div style="font-size:13px;font-weight:600">${data.contact}</div>
+    </div>`:''}
+    ${booksHtml}
+    ${data.rawText?`<details style="margin-top:12px"><summary style="font-size:12px;color:var(--muted);cursor:pointer">הצג טקסט גולמי מה-PDF</summary><pre style="font-size:11px;background:var(--surface2);padding:10px;border-radius:8px;margin-top:8px;overflow-x:auto;white-space:pre-wrap;direction:rtl">${data.rawText.slice(0,800)}</pre></details>`:''}
+  `;
+}
+
+async function approveOrder(){
+  if(!pendingOrder)return;
+  const btn=document.querySelector('#previewCard button');
+  btn.textContent='⏳ שומר...'; btn.disabled=true;
+
+  try {
+    const res = await fetch(UPLOAD_WEBHOOK, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({...pendingOrder, action:'approve', year:'תשפז'})
+    });
+    if(res.ok){
+      document.getElementById('previewCard').style.display='none';
+      showUploadStatus('success','🎉 ההזמנה נשמרה בהצלחה לגיליון תשפ"ז!');
+      pendingOrder=null;
+      document.getElementById('pdfInput').value='';
+      setTimeout(()=>{ activeY='תשפ"ז'; updYbtns(); render(); },1500);
+    }
+  } catch(e){
+    showUploadStatus('error','❌ שגיאה בשמירה: '+e.message);
+    btn.textContent='✅ אשרי ושמרי לתשפ"ז'; btn.disabled=false;
+  }
+}
+
+function rejectOrder(){
+  document.getElementById('previewCard').style.display='none';
+  pendingOrder=null;
+  showUploadStatus('info','ביטלת את ההזמנה');
+}
+
+function showUploadStatus(type, msg){
+  const el=document.getElementById('uploadStatus');
+  const colors={loading:'#fff8e6',success:'#e8f4ec',error:'#fdf0ef',info:'var(--surface2)'};
+  const borders={loading:'#f5e0a0',success:'#b7ddc6',error:'#f0c0bc',info:'var(--border)'};
+  el.style.display='block';
+  el.style.background=colors[type];
+  el.style.border=`1px solid ${borders[type]}`;
+  el.style.borderRadius='10px';
+  el.style.padding='12px 16px';
+  el.style.fontSize='13px';
+  el.style.fontWeight='500';
+  el.innerHTML=msg;
+}
 </script>
 </body>
 </html>
