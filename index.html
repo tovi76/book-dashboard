@@ -345,12 +345,12 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 <script>
 // ══ CONFIG ══
 const SHEET_ID = '151HfnYDeUVQc7qbtr5bqkPgLtPOrWhIAJE0nsdqDq2o';
-// ════ שנים — מנוהל דינמית דרך כפתור "＋ שנה" ════
-const YEARS = [
+// ════ שנים — נטענות מגיליון "הגדרות" בשיטס ════
+let YEARS = [
   {label:'תשפ"ז', tab:'מכירות לקראת תשפז'},
   {label:'תשפ"ו', tab:'מכירות לקראת תשפו'},
   {label:'תשפ"ה', tab:'מכירות לקראת תשפה ב"ה'},
-];
+]; // ברירת מחדל — תוחלף בטעינה
 const BOOKS = ['ברוכה הבאה ה','ברוכה הבאה ו','חברה לעט','מתחברת למילים','זה כל הסיפור',"מבינה ענין ה'","מבינה ענין ד'",'כשתקראי תביני'];
 const C = {
   name:'שם המוסד', city:'עיר היעד', supply:'האם סופק?',
@@ -384,6 +384,7 @@ async function fetchTab(tab){
 
 // ══ INIT ══
 async function init(){
+  await loadYearsFromStorage();
   buildYbtns();
   setLtxt('טוען נתונים...');
   let loaded=0;
@@ -1370,5 +1371,45 @@ function showUploadStatus(type, msg){
   el.innerHTML=msg;
 }
 </script>
+
+<!-- ══ MANUAL ORDER MODAL ══ -->
+<div id="manualOrderModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(3px)">
+  <div style="background:var(--surface);border-radius:16px;padding:28px;max-width:560px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.3);max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div style="font-size:17px;font-weight:700" id="manualTitle">הוספת הזמנה ידנית</div>
+      <button onclick="closeManual()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted)">✕</button>
+    </div>
+    <div id="manualSchoolWrap" style="margin-bottom:16px;display:none">
+      <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">בית ספר</div>
+      <div style="position:relative">
+        <input id="manualSchoolInput" placeholder="חיפוש בית ספר..." autocomplete="off"
+          oninput="filterManualSchool(this.value)" onfocus="filterManualSchool(this.value)"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
+        <div id="manualSchoolDD" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.12)"></div>
+      </div>
+      <div id="manualSchoolChosen" style="margin-top:6px;font-size:13px;font-weight:600;color:var(--accent)"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">שנה</div>
+        <select id="manualYear" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"></select>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">תאריך</div>
+        <input type="date" id="manualDate" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:8px;text-transform:uppercase">כמויות ספרים</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px" id="manualBooks"></div>
+    <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">הערה</div>
+    <textarea id="manualNote" placeholder="הערה אופציונלית..." rows="2"
+      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;margin-bottom:16px"></textarea>
+    <div id="manualGuides" style="background:var(--gold2);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:#7a5c00;margin-bottom:16px;display:none"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="saveManualOrder()" style="flex:1;padding:11px;background:var(--accent);color:#fff;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;border:none;border-radius:9px;cursor:pointer">שמור הזמנה</button>
+      <button onclick="closeManual()" style="padding:11px 18px;background:none;border:1px solid var(--border);border-radius:9px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">ביטול</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
