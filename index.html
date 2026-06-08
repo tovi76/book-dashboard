@@ -713,6 +713,71 @@ function handlePDF(input){
   if(file)processPDF(file);
 }
 
+// ── Clean RTL text ──
+function cleanRTL(str) {
+  return str.replace(/[‎‏‪-‮⁦-⁩؜]/g, '').trim();
+}
+
+// ── Parse PDF text ──
+function parsePDFText(raw) {
+  // Clean RTL chars
+  const text = cleanRTL(raw);
+  const lines = text.split(/\r?\n/).map(l => cleanRTL(l));
+
+  // Find school name — line containing "הזמנה עבור בית ספר"
+  let school = 'לא זוהה';
+  for (const line of lines) {
+    const m = line.match(/הזמנה עבור בית ספר\s+(.+?)(?:\s+טלפון|\s*,|$)/);
+    if (m) { school = m[1].trim(); break; }
+    // reversed text
+    const m2 = line.match(/(.+?)\s+ספר בית עבור הזמנה/);
+    if (m2) { school = m2[1].trim(); break; }
+  }
+
+  // Find books and quantities
+  const bookMap = {
+    'ברוכה הבעה לכיתה ה': 'ברוכה הבאה ה',
+    'ברוכה הבעה לכיתה ו': 'ברוכה הבאה ו',
+    'מבינה עניין לכיתה ד': "מבינה ענין ד'",
+    "מבינה עניין לכיתה ד'": "מבינה ענין ד'",
+    'מבינה עניין לכיתה ה': "מבינה ענין ה'",
+    "מבינה עניין לכיתה ה'": "מבינה ענין ה'",
+    'חברה לעט': 'חברה לעט',
+    'מתחברת למילים': 'מתחברת למילים',
+    'זה כל הסיפור': 'זה כל הסיפור',
+    'כשתקראי תביני': 'כשתקראי תביני',
+  };
+
+  const books = [];
+  for (const line of lines) {
+    const clean = cleanRTL(line);
+    // Pattern: book name ... number OR number ... book name
+    for (const [key, val] of Object.entries(bookMap)) {
+      if (clean.includes(key)) {
+        const numMatch = clean.match(/\b(\d+)\b/);
+        if (numMatch) {
+          books.push({ name: val, qty: parseInt(numMatch[1]) });
+        }
+        break;
+      }
+    }
+  }
+
+  // Find contact
+  let contact = '';
+  for (const line of lines) {
+    const clean = cleanRTL(line);
+    // Line after "ליצירת קשר:"
+    if (clean.includes('ליצירת קשר') && !clean.includes('טלפון')) {
+      const next = lines[lines.indexOf(line) + 1];
+      if (next) contact = cleanRTL(next);
+      break;
+    }
+  }
+
+  return { school, books, contact, rawText: text };
+}
+
 async function processPDF(file){
   showUploadStatus('loading',`⏳ מעבד את הקובץ: ${file.name}...`);
   document.getElementById('previewCard').style.display='none';
@@ -725,20 +790,37 @@ async function processPDF(file){
     const res = await fetch(UPLOAD_WEBHOOK, {method:'POST', body:fd});
     const text = await res.text();
 
-    let data;
-    try { data = JSON.parse(text); } catch(e) { data = {raw: text}; }
+    let response;
+    try { response = JSON.parse(text); } catch(e) { response = {raw: text}; }
 
-    if(data.error){
-      showUploadStatus('error','❌ שגיאה: '+data.error);
+    // Parse the raw text
+    let rawText = '';
+    if (response.rawText) {
+      rawText = response.rawText;
+    } else if (response.raw) {
+      // Try to extract rawText from nested JSON
+      try {
+        const inner = JSON.parse(response.raw);
+        rawText = inner.rawText || response.raw;
+      } catch(e) {
+        rawText = response.raw;
+      }
+    }
+
+    if (!rawText) {
+      showUploadStatus('error','❌ לא התקבל טקסט מהקובץ');
       return;
     }
 
-    // Store and show preview
+    const data = parsePDFText(rawText);
+    data.date = new Date().toLocaleDateString('he-IL');
+
     pendingOrder = data;
     showPreview(data);
     showUploadStatus('success','✅ הקובץ עובד בהצלחה — אשרי את ההזמנה למטה');
   } catch(e) {
     showUploadStatus('error','❌ שגיאת חיבור: '+e.message);
+    console.error(e);
   }
 }
 
