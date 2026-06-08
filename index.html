@@ -720,18 +720,13 @@ function cleanRTL(str) {
 
 // ── Parse PDF text ──
 function parsePDFText(raw) {
-  // Clean RTL chars
-  const text = cleanRTL(raw);
-  const lines = text.split(/\r?\n/).map(l => cleanRTL(l));
+  const lines = raw.split(/\n/).map(l => l.trim()).filter(Boolean);
 
   // Find school name — line containing "הזמנה עבור בית ספר"
   let school = 'לא זוהה';
   for (const line of lines) {
     const m = line.match(/הזמנה עבור בית ספר\s+(.+?)(?:\s+טלפון|\s*,|$)/);
     if (m) { school = m[1].trim(); break; }
-    // reversed text
-    const m2 = line.match(/(.+?)\s+ספר בית עבור הזמנה/);
-    if (m2) { school = m2[1].trim(); break; }
   }
 
   // Find books and quantities
@@ -750,11 +745,9 @@ function parsePDFText(raw) {
 
   const books = [];
   for (const line of lines) {
-    const clean = cleanRTL(line);
-    // Pattern: book name ... number OR number ... book name
     for (const [key, val] of Object.entries(bookMap)) {
-      if (clean.includes(key)) {
-        const numMatch = clean.match(/\b(\d+)\b/);
+      if (line.includes(key)) {
+        const numMatch = line.match(/\b(\d+)\b/);
         if (numMatch) {
           books.push({ name: val, qty: parseInt(numMatch[1]) });
         }
@@ -763,19 +756,16 @@ function parsePDFText(raw) {
     }
   }
 
-  // Find contact
+  // Find contact — line after "ליצירת קשר"
   let contact = '';
-  for (const line of lines) {
-    const clean = cleanRTL(line);
-    // Line after "ליצירת קשר:"
-    if (clean.includes('ליצירת קשר') && !clean.includes('טלפון')) {
-      const next = lines[lines.indexOf(line) + 1];
-      if (next) contact = cleanRTL(next);
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('ליצירת קשר') && !lines[i].includes('טלפון')) {
+      if (lines[i+1]) contact = lines[i+1].trim();
       break;
     }
   }
 
-  return { school, books, contact, rawText: text };
+  return { school, books, contact, rawText: raw };
 }
 
 async function processPDF(file){
@@ -812,7 +802,15 @@ async function processPDF(file){
       return;
     }
 
-    const data = parsePDFText(rawText);
+    // Reverse each line since PDF text is RTL-reversed
+    const reversedLines = rawText.split(/\r?\n/).map(line => {
+      const cleaned = cleanRTL(line).trim();
+      // Reverse words in line
+      return cleaned.split(/\s+/).reverse().join(' ');
+    });
+    const normalizedText = reversedLines.join('\n');
+
+    const data = parsePDFText(normalizedText);
     data.date = new Date().toLocaleDateString('he-IL');
 
     pendingOrder = data;
