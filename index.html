@@ -969,11 +969,10 @@ function showPreview(data){
 // 'qty_change'  = normal
 
 function calcGaps(books, schoolName) {
-  const prevYear = YEARS[1].label;
-  const prevRows = D[prevYear] || [];
-  const allPrevNames = new Set(
-    Object.values(D).flat().map(r => String(r[C.name]||'').trim()).filter(Boolean)
-  );
+  // Always compare to תשפ"ו = YEARS[1] (index 1 since תשפ"ז is index 0)
+  const prevYearLabel = YEARS[1].label;
+  const prevRows = D[prevYearLabel] || [];
+  const allPrevNames = new Set(prevRows.map(r => String(r[C.name]||'').trim()).filter(Boolean));
   const prevRow = prevRows.find(r => String(r[C.name]||'').trim() === schoolName);
   const isNewClient = !allPrevNames.has(schoolName);
 
