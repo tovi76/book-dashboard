@@ -725,8 +725,23 @@ function parsePDFText(raw) {
   // Find school name — line containing "הזמנה עבור בית ספר"
   let school = 'לא זוהה';
   for (const line of lines) {
-    const m = line.match(/הזמנה עבור בית ספר\s+(.+?)(?:\s+טלפון|\s*,|$)/);
-    if (m) { school = m[1].trim(); break; }
+    if (!line.includes('הזמנה עבור בית ספר')) continue;
+    // Extract everything after "הזמנה עבור בית ספר" until address/phone
+    const after = line.split('הזמנה עבור בית ספר')[1] || '';
+    // Remove leading comma/spaces
+    const cleaned = after.replace(/^[,\s]+/, '').trim();
+    // Take only until first address indicator (number + street / phone)
+    // School name is first word(s) before the address
+    const parts = cleaned.split(/\s+/);
+    const schoolParts = [];
+    for (const p of parts) {
+      // Stop at phone number or street number
+      if (/^\d{7,}$/.test(p)) break;
+      if (/^\d+$/.test(p) && schoolParts.length > 0) break;
+      schoolParts.push(p);
+    }
+    school = schoolParts.join(' ').replace(/^[,\s]+|[,\s]+$/g, '').trim();
+    if (school) break;
   }
 
   // Find books and quantities
