@@ -365,7 +365,12 @@ async function fetchTab(tab){
   if(!m)throw new Error('parse error');
   const json=JSON.parse(m[1]);
   const cols=json.table.cols.map(c=>c.label||'');
-  const rows=(json.table.rows||[]).map(r=>Object.fromEntries(cols.map((c,i)=>[c,r?.c?.[i]?.v??'']))).filter(r=>String(r[C.name]||'').trim());
+  const rows=(json.table.rows||[]).map(r=>{
+    const obj=Object.fromEntries(cols.map((c,i)=>[c,r?.c?.[i]?.v??'']));
+    // Normalize name — trim trailing commas/spaces
+    if(obj[C.name]) obj[C.name]=String(obj[C.name]).replace(/[,،،\s]+$/,'').trim();
+    return obj;
+  }).filter(r=>String(r[C.name]||'').trim());
   return{cols,rows};
 }
 
@@ -701,13 +706,21 @@ function filterSchoolList(q, currentSchool) {
   dd.style.display = hasVisible ? 'block' : 'none';
 }
 
-function selectSchool(name, el) {
+function selectSchool(name) {
   const input = document.getElementById('schoolEdit');
   if (input) { input.value = name; }
   pendingOrder.school = name;
   const dd = document.getElementById('schoolDropdown');
   if (dd) dd.style.display = 'none';
   showPreview(pendingOrder);
+}
+
+function selectSchoolByIndex(i) {
+  const items = document.querySelectorAll('#schoolDropdown .sditem');
+  if (items[i]) {
+    const name = items[i].dataset.name;
+    selectSchool(name);
+  }
 }
 
 document.addEventListener('click', e => {
@@ -973,7 +986,7 @@ function showPreview(data){
             oninput="filterSchoolList(this.value,'${data.school}')"
             onfocus="filterSchoolList(this.value,'${data.school}')"/>
           <div id="schoolDropdown" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:180px;overflow-y:auto;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.12)">
-            ${clientList.map(c=>`<div class="sditem" onclick="selectSchool('${c.replace(/'/g,"\\'")}',this)" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('')}
+            ${clientList.map((c,i)=>`<div class="sditem" data-name="${c.replace(/"/g,'&quot;')}" onclick="selectSchoolByIndex(${i})" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('')}
           </div>
         </div>
       </div>
