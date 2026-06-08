@@ -289,8 +289,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
   </div>
   <!-- ══ UPLOAD ══ -->
   <div class="page" id="pg-upload">
-    <!-- Upload area (shown before PDF is uploaded) -->
-    <div id="uploadArea" style="max-width:560px;margin:0 auto">
+    <div style="max-width:560px;margin:0 auto">
       <div class="card" style="margin-bottom:16px">
         <div class="ctitle">📄 העלאת טופס הזמנה</div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.7">
@@ -309,37 +308,15 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         </div>
         <div id="uploadStatus" style="margin-top:14px;display:none"></div>
       </div>
-    </div>
 
-    <!-- Split view: PDF on right, preview on left (shown after PDF uploaded) -->
-    <div id="splitView" style="display:none">
-      <!-- Header bar -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div style="font-size:15px;font-weight:700;color:var(--text)">📄 בדיקת הזמנה</div>
-        <div style="display:flex;gap:10px">
-          <button id="approveBtn" onclick="approveOrder()" style="padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי לתשפ"ז</button>
-          <button onclick="rejectOrder()" style="padding:10px 16px;background:none;border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">❌ בטלי</button>
+      <!-- Preview card -->
+      <div class="card" id="previewCard" style="display:none">
+        <div class="ctitle">👁️ תצוגה מקדימה — אשרי לפני שמירה</div>
+        <div id="previewContent"></div>
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button id="approveBtn" onclick="approveOrder()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי לתשפ"ז</button>
+          <button onclick="rejectOrder()" style="padding:12px 20px;background:none;border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">❌ בטלי</button>
         </div>
-      </div>
-      <div id="uploadStatus2" style="margin-bottom:12px;display:none"></div>
-
-      <!-- Two columns -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;min-height:80vh">
-
-        <!-- RIGHT: PDF viewer -->
-        <div class="card" style="padding:16px;position:sticky;top:80px">
-          <div class="ctitle" style="margin-bottom:12px">📋 טופס ההזמנה המקורי</div>
-          <div id="pdfViewer" style="width:100%;height:75vh;background:var(--surface2);border-radius:8px;overflow:hidden">
-            <div style="color:var(--muted);font-size:13px;padding:20px;text-align:center">טוען...</div>
-          </div>
-        </div>
-
-        <!-- LEFT: Preview & approval -->
-        <div class="card" id="previewCard">
-          <div class="ctitle">👁️ פרטי ההזמנה — לאישור</div>
-          <div id="previewContent"></div>
-        </div>
-
       </div>
     </div>
   </div>
@@ -892,26 +869,10 @@ function openManualStandalone(){
 
 function filterManualSchool(q){
   const dd = document.getElementById('manualSchoolDD');
-  if (!dd) return;
-  // Get all unique client names from all years
-  const allRows = Object.values(D).flat();
-  const clientList = [...new Set(allRows.map(r=>String(r[C.name]||'').trim()).filter(Boolean))].sort();
+  const clientList = [...new Set(Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean))].sort();
   const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
-  dd.innerHTML = '';
-  if (!filtered.length) {
-    dd.style.display = 'none';
-    return;
-  }
-  filtered.forEach(c => {
-    const div = document.createElement('div');
-    div.textContent = c;
-    div.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);background:var(--surface)';
-    div.onmouseenter = () => div.style.background = 'var(--accent3)';
-    div.onmouseleave = () => div.style.background = 'var(--surface)';
-    div.onmousedown = (e) => { e.preventDefault(); pickManualSchool(c); }; // mousedown not click - prevents blur
-    dd.appendChild(div);
-  });
-  dd.style.display = 'block';
+  dd.innerHTML = filtered.map(c=>`<div onclick="pickManualSchool('${c.replace(/'/g,"\'")}')" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('');
+  dd.style.display = filtered.length ? 'block' : 'none';
 }
 
 function pickManualSchool(name){
@@ -924,23 +885,6 @@ function pickManualSchool(name){
   if(dd) dd.style.display='none';
   const title = document.getElementById('manualTitle');
   if(title) title.textContent = `הוספת הזמנה — ${name}`;
-}
-
-function showPDFViewer(file) {
-  const viewer = document.getElementById('pdfViewer');
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  viewer.innerHTML = `<iframe src="${url}#zoom=page-width" style="width:100%;height:100%;min-height:70vh;border:none;border-radius:8px" title="PDF הזמנה"></iframe>`;
-}
-
-function showUploadStatus2(type, msg) {
-  const el = document.getElementById('uploadStatus2');
-  if (!el) return;
-  const colors = {loading:'#fff8e6', success:'#e8f4ec', error:'#fdf0ef', info:'var(--surface2)'};
-  const borders = {loading:'#f5e0a0', success:'#b7ddc6', error:'#f0c0bc', info:'var(--border)'};
-  el.style.display = 'block';
-  el.style.cssText = `display:block;background:${colors[type]};border:1px solid ${borders[type]};border-radius:10px;padding:10px 14px;font-size:13px;font-weight:500;margin-bottom:12px`;
-  el.innerHTML = msg;
 }
 
 function showToastMsg(msg){
@@ -1124,9 +1068,8 @@ function parsePDFText(raw) {
 }
 
 async function processPDF(file){
-  // Store file for PDF viewer
-  window._currentPDFFile = file;
   showUploadStatus('loading',`⏳ מעבד את הקובץ: ${file.name}...`);
+  document.getElementById('previewCard').style.display='none';
 
   try {
     const fd = new FormData();
@@ -1176,12 +1119,7 @@ async function processPDF(file){
       await init();
     }
     showPreview(data);
-    // Switch to split view
-    document.getElementById('uploadArea').style.display = 'none';
-    document.getElementById('splitView').style.display = 'block';
-    // Show PDF in viewer
-    showPDFViewer(window._currentPDFFile);
-    showUploadStatus2('success','✅ הקובץ עובד — אשרי או תקני לפני השמירה');
+    showUploadStatus('success','✅ הקובץ עובד בהצלחה — אשרי את ההזמנה למטה');
   } catch(e) {
     showUploadStatus('error','❌ שגיאת חיבור: '+e.message);
     console.error(e);
@@ -1414,10 +1352,7 @@ async function approveOrder(){
     });
 
     if (res.ok) {
-      document.getElementById('splitView').style.display='none';
-      document.getElementById('uploadArea').style.display='block';
-      document.getElementById('pdfInput').value='';
-      window._currentPDFFile = null;
+      document.getElementById('previewCard').style.display='none';
       const approveBtn2 = document.getElementById('approveBtn');
       if(approveBtn2){approveBtn2.textContent='✅ אשרי ושמרי לתשפ"ז';approveBtn2.disabled=false;}
       showUploadStatus('success',`🎉 ההזמנה של ${pendingOrder.school} נשמרה לגיליון תשפ"ז!${gaps.length?'\n📊 פערים: '+gaps.map(g=>g.text).join(' | '):''}`);
@@ -1444,11 +1379,8 @@ async function approveOrder(){
 }
 
 function rejectOrder(){
-  pendingOrder = null;
-  document.getElementById('splitView').style.display = 'none';
-  document.getElementById('uploadArea').style.display = 'block';
-  document.getElementById('pdfInput').value = '';
-  window._currentPDFFile = null;
+  document.getElementById('previewCard').style.display='none';
+  pendingOrder=null;
   showUploadStatus('info','ביטלת את ההזמנה');
 }
 
@@ -1478,9 +1410,7 @@ function showUploadStatus(type, msg){
       <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">בית ספר</div>
       <div style="position:relative">
         <input id="manualSchoolInput" placeholder="חיפוש בית ספר..." autocomplete="off"
-          oninput="filterManualSchool(this.value)"
-          onclick="filterManualSchool(this.value)"
-          onfocus="setTimeout(()=>filterManualSchool(this.value),100)"
+          oninput="filterManualSchool(this.value)" onfocus="filterManualSchool(this.value)"
           style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
         <div id="manualSchoolDD" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.12)"></div>
       </div>
