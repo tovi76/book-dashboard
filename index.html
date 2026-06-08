@@ -893,19 +893,25 @@ function openManualStandalone(){
 function filterManualSchool(q){
   const dd = document.getElementById('manualSchoolDD');
   if (!dd) return;
-  const clientList = [...new Set(Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean))].sort();
+  // Get all unique client names from all years
+  const allRows = Object.values(D).flat();
+  const clientList = [...new Set(allRows.map(r=>String(r[C.name]||'').trim()).filter(Boolean))].sort();
   const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
   dd.innerHTML = '';
+  if (!filtered.length) {
+    dd.style.display = 'none';
+    return;
+  }
   filtered.forEach(c => {
     const div = document.createElement('div');
     div.textContent = c;
     div.style.cssText = 'padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);background:var(--surface)';
     div.onmouseenter = () => div.style.background = 'var(--accent3)';
     div.onmouseleave = () => div.style.background = 'var(--surface)';
-    div.onclick = () => pickManualSchool(c);
+    div.onmousedown = (e) => { e.preventDefault(); pickManualSchool(c); }; // mousedown not click - prevents blur
     dd.appendChild(div);
   });
-  dd.style.display = filtered.length ? 'block' : 'none';
+  dd.style.display = 'block';
 }
 
 function pickManualSchool(name){
@@ -924,7 +930,7 @@ function showPDFViewer(file) {
   const viewer = document.getElementById('pdfViewer');
   if (!file) return;
   const url = URL.createObjectURL(file);
-  viewer.innerHTML = `<iframe src="${url}" style="width:100%;height:100%;border:none;border-radius:8px" title="PDF הזמנה"></iframe>`;
+  viewer.innerHTML = `<iframe src="${url}#zoom=page-width" style="width:100%;height:100%;min-height:70vh;border:none;border-radius:8px" title="PDF הזמנה"></iframe>`;
 }
 
 function showUploadStatus2(type, msg) {
@@ -1472,7 +1478,9 @@ function showUploadStatus(type, msg){
       <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">בית ספר</div>
       <div style="position:relative">
         <input id="manualSchoolInput" placeholder="חיפוש בית ספר..." autocomplete="off"
-          oninput="filterManualSchool(this.value)" onfocus="filterManualSchool(this.value)"
+          oninput="filterManualSchool(this.value)"
+          onclick="filterManualSchool(this.value)"
+          onfocus="setTimeout(()=>filterManualSchool(this.value),100)"
           style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
         <div id="manualSchoolDD" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.12)"></div>
       </div>
