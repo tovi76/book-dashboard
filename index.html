@@ -43,6 +43,8 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 /* ── Main ── */
 main{padding:24px 28px;max-width:1400px;margin:0 auto}
 .page{display:none}.page.on{display:block}
+/* When split view is active, upload page breaks out of main constraints */
+body.split-active main{max-width:100%;padding:0}
 
 /* ── Error ── */
 .err{background:#fdf0ef;border:1px solid #f0c0bc;border-radius:10px;padding:12px 16px;color:var(--danger);font-size:13px;margin-bottom:18px;display:none}
@@ -176,11 +178,49 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 
 .sditem:hover{background:var(--accent3)!important}
 /* ── Split view ── */
-#splitView{display:flex;flex-direction:row-reverse}
+#splitView{
+  display:flex;
+  flex-direction:row-reverse;
+  height:calc(100vh - 108px); /* full height minus header+nav */
+  overflow:hidden;
+}
+#pdfViewerPanel{
+  flex:1;
+  min-width:0;
+  height:100%;
+  border-left:1px solid var(--border);
+  background:var(--surface2);
+  display:flex;
+  flex-direction:column;
+}
+#pdfViewerPanel .pdf-toolbar{
+  padding:10px 16px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  font-size:13px;
+  font-weight:600;
+  flex-shrink:0;
+}
+#pdfFrame{
+  flex:1;
+  width:100%;
+  border:none;
+  display:block;
+}
+#splitRightPanel{
+  flex:1;
+  min-width:0;
+  height:100%;
+  overflow-y:auto;
+  padding:20px;
+}
 @media(max-width:900px){
-  #splitView{flex-direction:column}
-  #pdfViewerPanel{position:static!important}
-  #pdfFrame{height:50vh!important}
+  #splitView{flex-direction:column;height:auto}
+  #pdfViewerPanel{height:50vh;border-left:none;border-bottom:1px solid var(--border)}
+  #splitRightPanel{height:auto}
 }
 </style>
 </head>
@@ -321,22 +361,20 @@ tr:hover td{background:var(--surface2);cursor:pointer}
     </div>
 
     <!-- Split view (shown after PDF loaded) -->
-    <div id="splitView" style="display:none;gap:20px;align-items:flex-start">
-      <!-- Right: original PDF -->
-      <div id="pdfViewerPanel" style="flex:1;min-width:0;position:sticky;top:80px">
-        <div class="card" style="padding:12px">
-          <div class="ctitle" style="margin-bottom:10px">
-            📄 הקובץ המקורי
-            <button onclick="closeSplitView()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'Heebo',sans-serif">✕ סגור</button>
-          </div>
-          <iframe id="pdfFrame" style="width:100%;height:calc(100vh - 180px);border:none;border-radius:8px;background:var(--surface2)"></iframe>
+    <div id="splitView" style="display:none">
+      <!-- Right: original PDF - full panel, no card -->
+      <div id="pdfViewerPanel">
+        <div class="pdf-toolbar">
+          <span>📄 הקובץ המקורי</span>
+          <button onclick="closeSplitView()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'Heebo',sans-serif">✕ סגור וחזור</button>
         </div>
+        <iframe id="pdfFrame"></iframe>
       </div>
-      <!-- Left: preview + approve -->
-      <div style="flex:1;min-width:0">
+      <!-- Left: preview + approve, scrollable -->
+      <div id="splitRightPanel">
         <div class="card" style="margin-bottom:16px">
-          <div class="ctitle" style="margin-bottom:10px">📤 העלאה
-            <button onclick="document.getElementById('pdfInput2').click()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'Heebo',sans-serif">⬆️ העלאה חדשה</button>
+          <div class="ctitle" style="margin-bottom:8px">📤 העלאה נוספת
+            <button onclick="document.getElementById('pdfInput2').click()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'Heebo',sans-serif">⬆️ קובץ אחר</button>
             <input type="file" id="pdfInput2" accept=".pdf" style="display:none" onchange="handlePDF(this)"/>
           </div>
           <div id="uploadStatus2" style="display:none"></div>
@@ -1099,19 +1137,22 @@ function parsePDFText(raw) {
 let _currentPdfUrl = null;
 
 function showSplitView(file) {
-  // Revoke previous URL
   if (_currentPdfUrl) URL.revokeObjectURL(_currentPdfUrl);
   _currentPdfUrl = URL.createObjectURL(file);
   document.getElementById('pdfFrame').src = _currentPdfUrl;
   document.getElementById('uploadArea').style.display = 'none';
   document.getElementById('splitView').style.display = 'flex';
+  document.body.classList.add('split-active');
 }
 
 function closeSplitView() {
   document.getElementById('splitView').style.display = 'none';
   document.getElementById('uploadArea').style.display = 'block';
   document.getElementById('previewCard').style.display = 'none';
+  const s2 = document.getElementById('uploadStatus2');
+  if(s2) s2.style.display = 'none';
   document.getElementById('uploadStatus').style.display = 'none';
+  document.body.classList.remove('split-active');
   pendingOrder = null;
   if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
 }
@@ -1260,10 +1301,8 @@ function showPreview(data){
         <div style="font-size:11px;color:var(--muted);margin-bottom:4px">חיפוש מרשימה:</div>
         <div style="position:relative">
           <input id="schoolSearch" placeholder="הקלידי לחיפוש..." autocomplete="off"
-            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:12px;color:var(--text);outline:none"
-            oninput="filterSchoolList(this.value,'${data.school}')"
-            onfocus="filterSchoolList(this.value,'${data.school}')"/>
-          <div id="schoolDropdown" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:180px;overflow-y:auto;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.12)">
+            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:12px;color:var(--text);outline:none"/>
+          <div id="schoolDropdown" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:200px;overflow-y:auto;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.15)">
           </div>
         </div>
       </div>
@@ -1290,6 +1329,13 @@ function showPreview(data){
     </div>` : ''}
     ${data.rawText?`<details style="margin-top:12px"><summary style="font-size:12px;color:var(--muted);cursor:pointer">הצג טקסט גולמי מה-PDF</summary><pre style="font-size:11px;background:var(--surface2);padding:10px;border-radius:8px;margin-top:8px;overflow-x:auto;white-space:pre-wrap;direction:rtl">${data.rawText.slice(0,800)}</pre></details>`:''}
   `;
+
+  // Attach school search events AFTER innerHTML is written
+  const schoolSearchEl = document.getElementById('schoolSearch');
+  if (schoolSearchEl) {
+    schoolSearchEl.addEventListener('input', function(){ filterSchoolList(this.value); });
+    schoolSearchEl.addEventListener('focus', function(){ filterSchoolList(this.value); });
+  }
 }
 
 // ── Gap types ──
