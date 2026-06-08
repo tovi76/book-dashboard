@@ -289,7 +289,8 @@ tr:hover td{background:var(--surface2);cursor:pointer}
   </div>
   <!-- ══ UPLOAD ══ -->
   <div class="page" id="pg-upload">
-    <div style="max-width:560px;margin:0 auto">
+    <!-- Upload area (shown before PDF is uploaded) -->
+    <div id="uploadArea" style="max-width:560px;margin:0 auto">
       <div class="card" style="margin-bottom:16px">
         <div class="ctitle">📄 העלאת טופס הזמנה</div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.7">
@@ -308,15 +309,37 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         </div>
         <div id="uploadStatus" style="margin-top:14px;display:none"></div>
       </div>
+    </div>
 
-      <!-- Preview card -->
-      <div class="card" id="previewCard" style="display:none">
-        <div class="ctitle">👁️ תצוגה מקדימה — אשרי לפני שמירה</div>
-        <div id="previewContent"></div>
-        <div style="display:flex;gap:10px;margin-top:20px">
-          <button id="approveBtn" onclick="approveOrder()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי לתשפ"ז</button>
-          <button onclick="rejectOrder()" style="padding:12px 20px;background:none;border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">❌ בטלי</button>
+    <!-- Split view: PDF on right, preview on left (shown after PDF uploaded) -->
+    <div id="splitView" style="display:none">
+      <!-- Header bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:15px;font-weight:700;color:var(--text)">📄 בדיקת הזמנה</div>
+        <div style="display:flex;gap:10px">
+          <button id="approveBtn" onclick="approveOrder()" style="padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי לתשפ"ז</button>
+          <button onclick="rejectOrder()" style="padding:10px 16px;background:none;border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">❌ בטלי</button>
         </div>
+      </div>
+      <div id="uploadStatus2" style="margin-bottom:12px;display:none"></div>
+
+      <!-- Two columns -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+
+        <!-- RIGHT: PDF viewer -->
+        <div class="card" style="padding:16px">
+          <div class="ctitle" style="margin-bottom:12px">📋 טופס ההזמנה המקורי</div>
+          <div id="pdfViewer" style="width:100%;min-height:500px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden">
+            <div style="color:var(--muted);font-size:13px">טוען...</div>
+          </div>
+        </div>
+
+        <!-- LEFT: Preview & approval -->
+        <div class="card" id="previewCard">
+          <div class="ctitle">👁️ פרטי ההזמנה — לאישור</div>
+          <div id="previewContent"></div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -383,6 +406,27 @@ async function fetchTab(tab){
 }
 
 // ══ INIT ══
+async function loadYearsFromStorage() {
+  try {
+    const result = await Promise.race([
+      fetchTab('הגדרות'),
+      new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 5000))
+    ]);
+    const rows = result.rows || [];
+    if (rows.length) {
+      const loaded = rows
+        .filter(r => r['שנה'] && r['טאב'])
+        .map(r => ({ label: String(r['שנה']).trim(), tab: String(r['טאב']).trim() }));
+      if (loaded.length) {
+        YEARS = loaded;
+        console.log('Loaded years:', YEARS.map(y=>y.label));
+      }
+    }
+  } catch(e) {
+    console.warn('Using default years:', e.message);
+  }
+}
+
 async function init(){
   await loadYearsFromStorage();
   buildYbtns();
@@ -610,9 +654,15 @@ function ft(){
     return true;
   });
   document.getElementById('fcnt').textContent=`${f.length} לקוחות`;
+  // Add click handlers via event delegation to avoid quote issues
+  setTimeout(()=>{
+    document.querySelectorAll('#tb tr.clickrow').forEach(tr=>{
+      tr.onclick = () => openCard(tr.dataset.name);
+    });
+  }, 0);
   const cols=[C.name,C.city,...BOOKS,C.supply,C.pay,C.boxes,C.ship,C.notes];
   document.getElementById('th').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
-  document.getElementById('tb').innerHTML=f.map(r=>`<tr onclick="openCard('${encodeURIComponent(String(r[C.name]||'').trim())}')">`+cols.map(c=>{
+  document.getElementById('tb').innerHTML=f.map(r=>`<tr data-name="${encodeURIComponent(String(r[C.name]||'').trim())}" class="clickrow">`+cols.map(c=>{
     const v=r[c]??'';
     if(c===C.name)return`<td><span class="tn">${v||'—'}</span></td>`;
     if(c===C.supply)return`<td><span class="badge ${isSup(r)?'b-yes':'b-no'}">${v||'—'}</span></td>`;
@@ -860,6 +910,23 @@ function pickManualSchool(name){
   if(title) title.textContent = `הוספת הזמנה — ${name}`;
 }
 
+function showPDFViewer(file) {
+  const viewer = document.getElementById('pdfViewer');
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  viewer.innerHTML = `<iframe src="${url}" style="width:100%;height:600px;border:none;border-radius:8px" title="PDF הזמנה"></iframe>`;
+}
+
+function showUploadStatus2(type, msg) {
+  const el = document.getElementById('uploadStatus2');
+  if (!el) return;
+  const colors = {loading:'#fff8e6', success:'#e8f4ec', error:'#fdf0ef', info:'var(--surface2)'};
+  const borders = {loading:'#f5e0a0', success:'#b7ddc6', error:'#f0c0bc', info:'var(--border)'};
+  el.style.display = 'block';
+  el.style.cssText = `display:block;background:${colors[type]};border:1px solid ${borders[type]};border-radius:10px;padding:10px 14px;font-size:13px;font-weight:500;margin-bottom:12px`;
+  el.innerHTML = msg;
+}
+
 function showToastMsg(msg){
   let t = document.getElementById('toastMsg');
   if(!t){
@@ -1041,8 +1108,9 @@ function parsePDFText(raw) {
 }
 
 async function processPDF(file){
+  // Store file for PDF viewer
+  window._currentPDFFile = file;
   showUploadStatus('loading',`⏳ מעבד את הקובץ: ${file.name}...`);
-  document.getElementById('previewCard').style.display='none';
 
   try {
     const fd = new FormData();
@@ -1092,7 +1160,12 @@ async function processPDF(file){
       await init();
     }
     showPreview(data);
-    showUploadStatus('success','✅ הקובץ עובד בהצלחה — אשרי את ההזמנה למטה');
+    // Switch to split view
+    document.getElementById('uploadArea').style.display = 'none';
+    document.getElementById('splitView').style.display = 'block';
+    // Show PDF in viewer
+    showPDFViewer(window._currentPDFFile);
+    showUploadStatus2('success','✅ הקובץ עובד — אשרי או תקני לפני השמירה');
   } catch(e) {
     showUploadStatus('error','❌ שגיאת חיבור: '+e.message);
     console.error(e);
@@ -1325,7 +1398,10 @@ async function approveOrder(){
     });
 
     if (res.ok) {
-      document.getElementById('previewCard').style.display='none';
+      document.getElementById('splitView').style.display='none';
+      document.getElementById('uploadArea').style.display='block';
+      document.getElementById('pdfInput').value='';
+      window._currentPDFFile = null;
       const approveBtn2 = document.getElementById('approveBtn');
       if(approveBtn2){approveBtn2.textContent='✅ אשרי ושמרי לתשפ"ז';approveBtn2.disabled=false;}
       showUploadStatus('success',`🎉 ההזמנה של ${pendingOrder.school} נשמרה לגיליון תשפ"ז!${gaps.length?'\n📊 פערים: '+gaps.map(g=>g.text).join(' | '):''}`);
@@ -1352,8 +1428,11 @@ async function approveOrder(){
 }
 
 function rejectOrder(){
-  document.getElementById('previewCard').style.display='none';
-  pendingOrder=null;
+  pendingOrder = null;
+  document.getElementById('splitView').style.display = 'none';
+  document.getElementById('uploadArea').style.display = 'block';
+  document.getElementById('pdfInput').value = '';
+  window._currentPDFFile = null;
   showUploadStatus('info','ביטלת את ההזמנה');
 }
 
