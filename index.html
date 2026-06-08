@@ -173,6 +173,15 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+.sditem:hover{background:var(--accent3)!important}
+/* ── Split view ── */
+#splitView{display:flex;flex-direction:row-reverse}
+@media(max-width:900px){
+  #splitView{flex-direction:column}
+  #pdfViewerPanel{position:static!important}
+  #pdfFrame{height:50vh!important}
+}
 </style>
 </head>
 <body>
@@ -289,7 +298,8 @@ tr:hover td{background:var(--surface2);cursor:pointer}
   </div>
   <!-- ══ UPLOAD ══ -->
   <div class="page" id="pg-upload">
-    <div style="max-width:560px;margin:0 auto">
+    <!-- Upload area (shown before PDF loaded) -->
+    <div id="uploadArea" style="max-width:560px;margin:0 auto">
       <div class="card" style="margin-bottom:16px">
         <div class="ctitle">📄 העלאת טופס הזמנה</div>
         <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.7">
@@ -308,14 +318,36 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         </div>
         <div id="uploadStatus" style="margin-top:14px;display:none"></div>
       </div>
+    </div>
 
-      <!-- Preview card -->
-      <div class="card" id="previewCard" style="display:none">
-        <div class="ctitle">👁️ תצוגה מקדימה — אשרי לפני שמירה</div>
-        <div id="previewContent"></div>
-        <div style="display:flex;gap:10px;margin-top:20px">
-          <button id="approveBtn" onclick="approveOrder()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי לתשפ"ז</button>
-          <button onclick="rejectOrder()" style="padding:12px 20px;background:none;border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">❌ בטלי</button>
+    <!-- Split view (shown after PDF loaded) -->
+    <div id="splitView" style="display:none;gap:20px;align-items:flex-start">
+      <!-- Right: original PDF -->
+      <div id="pdfViewerPanel" style="flex:1;min-width:0;position:sticky;top:80px">
+        <div class="card" style="padding:12px">
+          <div class="ctitle" style="margin-bottom:10px">
+            📄 הקובץ המקורי
+            <button onclick="closeSplitView()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'Heebo',sans-serif">✕ סגור</button>
+          </div>
+          <iframe id="pdfFrame" style="width:100%;height:calc(100vh - 180px);border:none;border-radius:8px;background:var(--surface2)"></iframe>
+        </div>
+      </div>
+      <!-- Left: preview + approve -->
+      <div style="flex:1;min-width:0">
+        <div class="card" style="margin-bottom:16px">
+          <div class="ctitle" style="margin-bottom:10px">📤 העלאה
+            <button onclick="document.getElementById('pdfInput2').click()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--muted);font-family:'Heebo',sans-serif">⬆️ העלאה חדשה</button>
+            <input type="file" id="pdfInput2" accept=".pdf" style="display:none" onchange="handlePDF(this)"/>
+          </div>
+          <div id="uploadStatus2" style="display:none"></div>
+        </div>
+        <div class="card" id="previewCard" style="display:none">
+          <div class="ctitle">👁️ תצוגה מקדימה — אשרי לפני שמירה</div>
+          <div id="previewContent"></div>
+          <div style="display:flex;gap:10px;margin-top:20px">
+            <button id="approveBtn" onclick="approveOrder()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי לתשפ"ז</button>
+            <button onclick="rejectOrder()" style="padding:12px 20px;background:none;border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">❌ בטלי</button>
+          </div>
         </div>
       </div>
     </div>
@@ -923,15 +955,12 @@ const UPLOAD_WEBHOOK = 'https://hook.eu2.make.com/hheatnr5psu19135roiu2atn9c38aw
 function filterSchoolList(q, currentSchool) {
   const dd = document.getElementById('schoolDropdown');
   if (!dd) return;
-  const items = dd.querySelectorAll('.sditem');
-  let hasVisible = false;
-  items.forEach(item => {
-    const name = item.textContent;
-    const show = !q || name.includes(q);
-    item.style.display = show ? 'block' : 'none';
-    if (show) hasVisible = true;
-  });
-  dd.style.display = hasVisible ? 'block' : 'none';
+  const clientList = [...new Set(
+    Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean)
+  )].sort();
+  const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
+  dd.innerHTML = filtered.map((c,i)=>`<div class="sditem" data-name="${c.replace(/"/g,'&quot;')}" onclick="selectSchoolByIndex(${i})" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('');
+  dd.style.display = filtered.length ? 'block' : 'none';
 }
 
 function selectSchool(name) {
@@ -1067,7 +1096,28 @@ function parsePDFText(raw) {
   return { school, books, contact, rawText: raw };
 }
 
+let _currentPdfUrl = null;
+
+function showSplitView(file) {
+  // Revoke previous URL
+  if (_currentPdfUrl) URL.revokeObjectURL(_currentPdfUrl);
+  _currentPdfUrl = URL.createObjectURL(file);
+  document.getElementById('pdfFrame').src = _currentPdfUrl;
+  document.getElementById('uploadArea').style.display = 'none';
+  document.getElementById('splitView').style.display = 'flex';
+}
+
+function closeSplitView() {
+  document.getElementById('splitView').style.display = 'none';
+  document.getElementById('uploadArea').style.display = 'block';
+  document.getElementById('previewCard').style.display = 'none';
+  document.getElementById('uploadStatus').style.display = 'none';
+  pendingOrder = null;
+  if (_currentPdfUrl) { URL.revokeObjectURL(_currentPdfUrl); _currentPdfUrl = null; }
+}
+
 async function processPDF(file){
+  showSplitView(file);
   showUploadStatus('loading',`⏳ מעבד את הקובץ: ${file.name}...`);
   document.getElementById('previewCard').style.display='none';
 
@@ -1214,7 +1264,6 @@ function showPreview(data){
             oninput="filterSchoolList(this.value,'${data.school}')"
             onfocus="filterSchoolList(this.value,'${data.school}')"/>
           <div id="schoolDropdown" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:180px;overflow-y:auto;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.12)">
-            ${clientList.map((c,i)=>`<div class="sditem" data-name="${c.replace(/"/g,'&quot;')}" onclick="selectSchoolByIndex(${i})" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('')}
           </div>
         </div>
       </div>
@@ -1352,7 +1401,7 @@ async function approveOrder(){
     });
 
     if (res.ok) {
-      document.getElementById('previewCard').style.display='none';
+      closeSplitView();
       const approveBtn2 = document.getElementById('approveBtn');
       if(approveBtn2){approveBtn2.textContent='✅ אשרי ושמרי לתשפ"ז';approveBtn2.disabled=false;}
       showUploadStatus('success',`🎉 ההזמנה של ${pendingOrder.school} נשמרה לגיליון תשפ"ז!${gaps.length?'\n📊 פערים: '+gaps.map(g=>g.text).join(' | '):''}`);
@@ -1379,23 +1428,19 @@ async function approveOrder(){
 }
 
 function rejectOrder(){
-  document.getElementById('previewCard').style.display='none';
-  pendingOrder=null;
+  closeSplitView();
   showUploadStatus('info','ביטלת את ההזמנה');
 }
 
 function showUploadStatus(type, msg){
-  const el=document.getElementById('uploadStatus');
   const colors={loading:'#fff8e6',success:'#e8f4ec',error:'#fdf0ef',info:'var(--surface2)'};
   const borders={loading:'#f5e0a0',success:'#b7ddc6',error:'#f0c0bc',info:'var(--border)'};
-  el.style.display='block';
-  el.style.background=colors[type];
-  el.style.border=`1px solid ${borders[type]}`;
-  el.style.borderRadius='10px';
-  el.style.padding='12px 16px';
-  el.style.fontSize='13px';
-  el.style.fontWeight='500';
-  el.innerHTML=msg;
+  const style = `display:block;background:${colors[type]};border:1px solid ${borders[type]};border-radius:10px;padding:12px 16px;font-size:13px;font-weight:500`;
+  // Update whichever status element is visible
+  ['uploadStatus','uploadStatus2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.style.cssText=style;el.innerHTML=msg;}
+  });
 }
 </script>
 
