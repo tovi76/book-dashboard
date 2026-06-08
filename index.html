@@ -783,13 +783,30 @@ function parsePDFText(raw) {
   };
 
   const books = [];
-  for (const line of lines) {
+  // Use flexible matching — normalize quotes and spaces before comparing
+  function normStr(s) {
+    return s.replace(/[''׳`]/g, "'").replace(/\s+/g,' ').trim();
+  }
+  const normLines = lines.map(normStr);
+
+  for (const line of normLines) {
+    let matched = false;
     for (const [key, val] of Object.entries(bookMap)) {
-      if (line.includes(key)) {
-        const numMatch = line.match(/\b(\d+)\b/);
-        if (numMatch) {
-          books.push({ name: val, qty: parseInt(numMatch[1]) });
+      const normKey = normStr(key);
+      if (line.includes(normKey)) {
+        // Extract last number in line (quantity is usually at the end)
+        const nums = line.match(/\d+/g);
+        if (nums) {
+          // Filter out phone-like numbers (7+ digits)
+          const qty = nums.filter(n => n.length <= 4).pop();
+          if (qty) {
+            // Avoid duplicates
+            if (!books.find(b => b.name === val)) {
+              books.push({ name: val, qty: parseInt(qty) });
+            }
+          }
         }
+        matched = true;
         break;
       }
     }
