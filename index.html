@@ -292,10 +292,13 @@ tr:hover td{background:var(--surface2);cursor:pointer}
     <div style="max-width:560px;margin:0 auto">
       <div class="card" style="margin-bottom:16px">
         <div class="ctitle">📄 העלאת טופס הזמנה</div>
-        <p style="font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.7">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.7">
           העלי טופס הזמנה בפורמט PDF. המערכת תחלץ אוטומטית את שם בית הספר, הספרים והכמויות,
           ותציג לך תצוגה מקדימה לאישור לפני השמירה לגיליון תשפ"ז.
         </p>
+        <button onclick="openManualStandalone()" style="width:100%;padding:11px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;margin-bottom:16px;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          ✏️ הוספת הזמנה ידנית (ללא PDF)
+        </button>
         <div id="dropzone" onclick="document.getElementById('pdfInput').click()" 
           style="border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)">
           <div style="font-size:36px;margin-bottom:10px">📄</div>
@@ -728,9 +731,17 @@ function closeCard(){
 
 let _manualSchool = '';
 
-function openAddOrder(){
-  _manualSchool = document.getElementById('ccName').textContent;
-  document.getElementById('manualTitle').textContent = `הוספת הזמנה — ${_manualSchool}`;
+function openAddOrder(schoolName){
+  _manualSchool = schoolName || document.getElementById('ccName')?.textContent || '';
+  const title = document.getElementById('manualTitle');
+  if(title) title.textContent = `הוספת הזמנה — ${_manualSchool}`;
+  // Hide school selector when coming from client card
+  const wrap = document.getElementById('manualSchoolWrap');
+  if(wrap) wrap.style.display='none';
+  // Populate year select
+  const yrSel = document.getElementById('manualYear');
+  yrSel.innerHTML = YEARS.map(y=>`<option value="${y.label}">${y.label}</option>`).join('');
+  yrSel.value = YEARS[0].label;
   document.getElementById('manualDate').value = new Date().toISOString().split('T')[0];
 
   // Build book inputs
@@ -800,6 +811,52 @@ async function saveManualOrder(){
   } catch(e){
     showToastMsg('❌ שגיאה: '+e.message);
   }
+}
+
+function openManualStandalone(){
+  _manualSchool = '';
+  const title = document.getElementById('manualTitle');
+  if(title) title.textContent = 'הוספת הזמנה ידנית';
+  const wrap = document.getElementById('manualSchoolWrap');
+  if(wrap) wrap.style.display='block';
+  const input = document.getElementById('manualSchoolInput');
+  if(input) input.value='';
+  const chosen = document.getElementById('manualSchoolChosen');
+  if(chosen) chosen.textContent='';
+
+  const yrSel = document.getElementById('manualYear');
+  if(yrSel) yrSel.innerHTML = YEARS.map(y=>`<option value="${y.label}">${y.label}</option>`).join('');
+  document.getElementById('manualDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('manualBooks').innerHTML = BOOKS.map(b=>`
+    <div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px">${b}</div>
+      <input type="number" min="0" id="mb_${b.replace(/[^א-ת]/g,'_')}"
+        placeholder="0" oninput="updateManualGuides()"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;color:var(--accent);outline:none"/>
+    </div>`).join('');
+  document.getElementById('manualNote').value='';
+  document.getElementById('manualGuides').style.display='none';
+  document.getElementById('manualOrderModal').style.display='flex';
+}
+
+function filterManualSchool(q){
+  const dd = document.getElementById('manualSchoolDD');
+  const clientList = [...new Set(Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean))].sort();
+  const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
+  dd.innerHTML = filtered.map(c=>`<div onclick="pickManualSchool('${c.replace(/'/g,"\'")}')" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('');
+  dd.style.display = filtered.length ? 'block' : 'none';
+}
+
+function pickManualSchool(name){
+  _manualSchool = name;
+  const input = document.getElementById('manualSchoolInput');
+  if(input) input.value = name;
+  const chosen = document.getElementById('manualSchoolChosen');
+  if(chosen) chosen.textContent = '✓ ' + name;
+  const dd = document.getElementById('manualSchoolDD');
+  if(dd) dd.style.display='none';
+  const title = document.getElementById('manualTitle');
+  if(title) title.textContent = `הוספת הזמנה — ${name}`;
 }
 
 function showToastMsg(msg){
