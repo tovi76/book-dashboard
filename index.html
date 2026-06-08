@@ -181,7 +181,10 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 
 <header>
   <div class="hlogo">📚 <span>מכירות ספרים</span> <span class="live-dot"></span></div>
-  <div class="hright" id="ybtns"></div>
+  <div class="hright" style="display:flex;align-items:center;gap:10px">
+    <div id="ybtns" style="display:flex;gap:6px"></div>
+    <button onclick="addNextYear()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-family:'Heebo',sans-serif;font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer;transition:all .2s" title="הוסף שנת לימודים חדשה">＋ שנה</button>
+  </div>
 </header>
 
 <nav>
@@ -324,7 +327,10 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         <div class="cc-name" id="ccName"></div>
         <div class="cc-sub" id="ccSub"></div>
       </div>
-      <button class="cc-close" onclick="closeCard()">✕</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="openAddOrder()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-family:'Heebo',sans-serif;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer">✏️ הוסף הזמנה ידנית</button>
+        <button class="cc-close" onclick="closeCard()">✕</button>
+      </div>
     </div>
     <div class="cc-body">
       <div class="cc-meta" id="ccMeta"></div>
@@ -336,8 +342,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 <script>
 // ══ CONFIG ══
 const SHEET_ID = '151HfnYDeUVQc7qbtr5bqkPgLtPOrWhIAJE0nsdqDq2o';
-// ════ להוספת שנה חדשה — הוסיפי שורה בתחילת הרשימה: ════
-// {label:'תשפ"ח', tab:'מכירות לקראת תשפח'},
+// ════ שנים — מנוהל דינמית דרך כפתור "＋ שנה" ════
 const YEARS = [
   {label:'תשפ"ז', tab:'מכירות לקראת תשפז'},
   {label:'תשפ"ו', tab:'מכירות לקראת תשפו'},
@@ -397,6 +402,56 @@ async function init(){
   hideLoader();
 }
 
+// ── Hebrew year names ──
+const HEB_TENS = {'':'', 'פ':'פ', 'פא':'פא','פב':'פב','פג':'פג','פד':'פד','פה':'פה','פו':'פו','פז':'פז','פח':'פח','פט':'פט','צ':'צ','צא':'צא','צב':'צב','צג':'צג','צד':'צד','צה':'צה','צו':'צו','צז':'צז','צח':'צח','צט':'צט'};
+
+function nextHebrewYear(label) {
+  // Extract year letters from label like תשפ"ז
+  const m = label.match(/תש([א-ת"]+)/);
+  if (!m) return null;
+  const yr = m[1].replace(/"/g,'');
+
+  // Map current year letters to next
+  const sequence = ['פ','פא','פב','פג','פד','פה','פו','פז','פח','פט','צ','צא','צב','צג','צד','צה','צו','צז','צח','צט'];
+  const idx = sequence.indexOf(yr);
+  if (idx < 0 || idx >= sequence.length - 1) return null;
+  const nextYr = sequence[idx + 1];
+  // Format with geresh: if single letter add ׳, if two letters add " before last
+  let formatted;
+  if (nextYr.length === 1) formatted = `תש${nextYr}'`;
+  else formatted = `תש${nextYr.slice(0,-1)}"${nextYr.slice(-1)}`;
+  // Tab name: just letters without geresh/gershayim
+  const tabYr = nextYr.replace(/['"׳״]/g,'');
+  return { label: formatted, tab: `מכירות לקראת תש${tabYr}` };
+}
+
+function addNextYear() {
+  const last = YEARS[0]; // newest year is first
+  const next = nextHebrewYear(last.label);
+  if (!next) { alert('לא ניתן לחשב את השנה הבאה אוטומטית'); return; }
+
+  // Check if already exists
+  if (YEARS.find(y => y.label === next.label)) {
+    alert(`השנה ${next.label} כבר קיימת`);
+    return;
+  }
+
+  // Confirm
+  if (!confirm(`להוסיף את שנת ${next.label}?\n\nשים לב: צרי גיליון בשם "${next.tab}" בגוגל שיטס`)) return;
+
+  YEARS.unshift(next);
+  D[next.label] = [];
+  H[next.label] = [];
+
+  // Rebuild year buttons
+  document.getElementById('ybtns').innerHTML = '';
+  buildYbtns();
+  activeY = next.label;
+  updYbtns();
+  render();
+  alert(`✅ השנה ${next.label} נוספה!\n\nצרי גיליון בשיטס בשם:\n"${next.tab}"`);
+}
+
 function buildYbtns(){
   const c=document.getElementById('ybtns');
   YEARS.forEach(y=>{
@@ -436,7 +491,7 @@ function renderKPIs(rows,prev){
   const n=rows.length, sup=rows.filter(isSup).length, paid=rows.filter(isPaid).length;
   const tb=tbooks(rows), ptb=tbooks(prev);
   const d=ptb?Math.round((tb-ptb)/ptb*100):null;
-  const g=Math.floor(tb/40);
+  const g=Math.ceil(tb/40);
   document.getElementById('kgrid').innerHTML=`
     <div class="kcard green"><div class="klbl">לקוחות</div><div class="knum">${n}</div><div class="ksub">${activeY}</div></div>
     <div class="kcard"><div class="klbl">ספרים</div><div class="knum">${tb.toLocaleString()}</div>${d!==null?`<div class="kdelta ${d>=0?'up':'down'}">${d>=0?'▲':'▼'}${Math.abs(d)}% משנה קודמת</div>`:'<div class="ksub">—</div>'}</div>
@@ -647,7 +702,7 @@ function openCard(encoded){
     const books=BOOKS.filter(b=>bqty(r,b)>0);
     const isCurrent = year === currentYear;
     const sup=isSup(r), paid=isPaid(r);
-    const guides = Math.floor(BOOKS.reduce((s,b)=>s+bqty(r,b),0)/40);
+    const guides = Math.ceil(BOOKS.reduce((s,b)=>s+bqty(r,b),0)/40);
     return`<div class="cc-yr">
       <div class="cc-yrtitle">📅 ${year}
         ${isCurrent?`<span class="badge ${sup?'b-yes':'b-no'}" style="margin-right:8px">${sup?'✅ סופק':'⏳ לא סופק'}</span>`:''}
@@ -669,6 +724,94 @@ function openCard(encoded){
 function closeCard(){
   document.getElementById('clientCard').classList.remove('open');
   document.body.style.overflow='';
+}
+
+let _manualSchool = '';
+
+function openAddOrder(){
+  _manualSchool = document.getElementById('ccName').textContent;
+  document.getElementById('manualTitle').textContent = `הוספת הזמנה — ${_manualSchool}`;
+  document.getElementById('manualDate').value = new Date().toISOString().split('T')[0];
+
+  // Build book inputs
+  document.getElementById('manualBooks').innerHTML = BOOKS.map(b=>`
+    <div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:3px">${b}</div>
+      <input type="number" min="0" id="mb_${b.replace(/[^a-zA-Zא-ת]/g,'_')}"
+        placeholder="0" oninput="updateManualGuides()"
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;color:var(--accent);outline:none"/>
+    </div>`).join('');
+
+  // Set year to current
+  document.getElementById('manualYear').value = YEARS[0].label;
+  document.getElementById('manualNote').value = '';
+  document.getElementById('manualGuides').style.display='none';
+  document.getElementById('manualOrderModal').style.display='flex';
+}
+
+function updateManualGuides(){
+  let total = 0;
+  BOOKS.forEach(b=>{
+    const el = document.getElementById('mb_'+b.replace(/[^a-zA-Zא-ת]/g,'_'));
+    if(el) total += Number(el.value)||0;
+  });
+  const guides = Math.ceil(total/40);
+  const el = document.getElementById('manualGuides');
+  if(total > 0){
+    el.style.display='block';
+    el.textContent = `📚 סה"כ ${total} ספרים → ${guides} מדריך${guides>1?'ים':''} למורה`;
+  } else {
+    el.style.display='none';
+  }
+}
+
+function closeManual(){
+  document.getElementById('manualOrderModal').style.display='none';
+}
+
+async function saveManualOrder(){
+  const year = document.getElementById('manualYear').value;
+  const date = document.getElementById('manualDate').value;
+  const note = document.getElementById('manualNote').value;
+
+  const books = {};
+  BOOKS.forEach(b=>{
+    const el = document.getElementById('mb_'+b.replace(/[^a-zA-Zא-ת]/g,'_'));
+    if(el && Number(el.value)>0) books[b] = Number(el.value);
+  });
+
+  const payload = {
+    action: 'save_manual',
+    school: _manualSchool,
+    year: year.replace(/"/g,''),
+    date, note, ...books
+  };
+
+  const SAVE_WEBHOOK = 'https://hook.eu2.make.com/cajje0kzm7hfxhe8fetgb5pzfe85blc7';
+  try {
+    const res = await fetch(SAVE_WEBHOOK, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(res.ok){
+      closeManual();
+      showToastMsg('✅ ההזמנה נשמרה בהצלחה!');
+    }
+  } catch(e){
+    showToastMsg('❌ שגיאה: '+e.message);
+  }
+}
+
+function showToastMsg(msg){
+  let t = document.getElementById('toastMsg');
+  if(!t){
+    t = document.createElement('div');
+    t.id='toastMsg';
+    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:999;transition:opacity .3s';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0', 3000);
 }
 document.getElementById('clientCard').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCard();});
 
