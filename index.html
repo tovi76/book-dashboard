@@ -738,34 +738,12 @@ function parsePDFText(raw) {
   }
 
   if (schoolLine) {
-    // Match against known clients from loaded data
-    const knownClients = [...new Set(
-      Object.values(D).flat().map(r => String(r[C.name]||'').trim()).filter(Boolean)
-    )];
-
-    // Normalize for comparison — remove quotes/apostrophes and extra spaces
-    function normMatch(s) {
-      return s.replace(/[''׳`'"]/g, '').replace(/\s+/g,' ').trim().toLowerCase();
-    }
-    const normSchoolLine = normMatch(schoolLine);
-
-    let bestMatch = '';
-    for (const client of knownClients) {
-      const normClient = normMatch(client);
-      if (normClient && normSchoolLine.includes(normClient) && client.length > bestMatch.length) {
-        bestMatch = client;
-      }
-    }
-
-    if (bestMatch) {
-      school = bestMatch;
-    } else {
-      // Fallback: extract text after marker until first number
-      const after = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[,\s]+/, '').trim();
-      const m = after.match(/^([^\d,]+?)(?:\s+\d|,|$)/);
-      school = m ? m[1].trim() : after.split(',')[0].trim();
-    }
+    // Extract raw school name — user confirms in preview
+    const afterMarker = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[,\s]+/, '').trim();
+    const rawMatch = afterMarker.match(/^(.+?)(?:\s*,|\s+\d{7,}|\s+טלפון|$)/);
+    school = rawMatch ? rawMatch[1].replace(/\s+\d+$/, '').trim() : afterMarker.split(',')[0].trim();
   }
+
 
   // Find books and quantities
   const bookMap = {
@@ -955,23 +933,30 @@ function showPreview(data){
       </div>
     </div>` : '<div style="color:var(--muted);font-size:13px;margin-top:12px">לא זוהו ספרים — בדקי ידנית</div>';
 
-  const isNew = !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === data.school);
+  const clientList = [...new Set(
+    Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean)
+  )].sort();
   const isUnknown = !data.school || data.school === 'לא זוהה';
+  const isExact = clientList.includes(data.school);
 
   content.innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-      <div style="background:${isNew||isUnknown?'#fffbec':'var(--surface2)'};border:${isNew||isUnknown?'1px solid #f5e0a0':'1px solid transparent'};border-radius:8px;padding:10px 14px">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:5px">
+      <div style="background:${isExact?'var(--surface2)':'#fffbec'};border:1px solid ${isExact?'var(--border)':'#f5e0a0'};border-radius:8px;padding:10px 14px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">
           בית ספר
-          ${isNew&&!isUnknown?'<span style="background:#e8f0ff;color:#2d4fa0;border:1px solid #c0cdf7;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">🆕 חדש</span>':''}
-          ${isUnknown?'<span style="background:#fffbec;color:#7a5c00;border:1px solid #f5e0a0;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">⚠️ לא זוהה</span>':''}
+          ${isExact?'<span style="background:#e6f4ec;color:#1a6b35;border:1px solid #b7ddc6;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">✓ זוהה</span>':'<span style="background:#fffbec;color:#7a5c00;border:1px solid #f5e0a0;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">⚠️ בדקי</span>'}
         </div>
-        <input id="schoolEdit" value="${isUnknown?'':data.school}" placeholder="הכניסי שם בית ספר..." 
-          style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;font-family:'Heebo',sans-serif;color:var(--text);padding:2px 0;outline:none"
+        <input id="schoolEdit" value="${data.school||''}" placeholder="שם בית ספר..." 
+          style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;font-family:'Heebo',sans-serif;color:var(--text);padding:4px 0;outline:none;margin-bottom:8px"
           oninput="pendingOrder.school=this.value"/>
-        ${isUnknown?'<div style="font-size:11px;color:var(--warning,#c9a84c);margin-top:4px">ערכי את שם בית הספר לפני האישור</div>':''}
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">או בחרי מרשימה:</div>
+        <select onchange="if(this.value){document.getElementById('schoolEdit').value=this.value;pendingOrder.school=this.value;showPreview(pendingOrder)}"
+          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'Heebo',sans-serif;font-size:12px;color:var(--text);outline:none;cursor:pointer">
+          <option value="">— בחרי לקוח קיים —</option>
+          ${clientList.map(c=>`<option value="${c}" ${c===data.school?'selected':''}>${c}</option>`).join('')}
+        </select>
       </div>
-      <div style="background:var(--surface2);border-radius:8px;padding:10px 14px">
+            <div style="background:var(--surface2);border-radius:8px;padding:10px 14px">
         <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">תאריך</div>
         <div style="font-size:14px;font-weight:700">${data.date||new Date().toLocaleDateString('he-IL')}</div>
       </div>
