@@ -572,6 +572,13 @@ function ft(){
     if(c===C.supply)return`<td><span class="badge ${isSup(r)?'b-yes':'b-no'}">${v||'—'}</span></td>`;
     if(c===C.pay)return`<td><span class="badge ${isPaid(r)?'b-paid':'b-no'}">${v||'—'}</span></td>`;
     if(BOOKS.includes(c))return`<td style="text-align:center;font-weight:${Number(v)>0?700:400};color:${Number(v)>0?'var(--accent)':'var(--dim)'}">${Number(v)>0?v:'—'}</td>`;
+    if(c===C.gaps&&v){
+      let bg='',col='',brd='';
+      if(v.includes('לקוח חדש')){bg='#fffbec';col='#7a5c00';brd='#f5e0a0';}
+      else if(v.includes('ספר חדש')){bg='#fce8f3';col='#8b1a5a';brd='#f0b3d8';}
+      else if(v.includes('הורידו')&&!v.includes('כמות')){bg='#e8f7fa';col='#1a5f72';brd='#a8dce8';}
+      if(bg)return`<td><span style="background:${bg};color:${col};border:1px solid ${brd};border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600">${v}</span></td>`;
+    }
     return`<td>${v||'—'}</td>`;
   }).join('')+'</tr>').join('');
 }
@@ -722,26 +729,36 @@ function cleanRTL(str) {
 function parsePDFText(raw) {
   const lines = raw.split(/\n/).map(l => l.trim()).filter(Boolean);
 
-  // Find school name — line containing "הזמנה עבור בית ספר"
+  // Find school name by matching against known clients
   let school = 'לא זוהה';
+  let schoolLine = '';
+
   for (const line of lines) {
-    if (!line.includes('הזמנה עבור בית ספר')) continue;
-    // Extract everything after "הזמנה עבור בית ספר" until address/phone
-    const after = line.split('הזמנה עבור בית ספר')[1] || '';
-    // Remove leading comma/spaces
-    const cleaned = after.replace(/^[,\s]+/, '').trim();
-    // Take only until first address indicator (number + street / phone)
-    // School name is first word(s) before the address
-    const parts = cleaned.split(/\s+/);
-    const schoolParts = [];
-    for (const p of parts) {
-      // Stop at phone number or street number
-      if (/^\d{7,}$/.test(p)) break;
-      if (/^\d+$/.test(p) && schoolParts.length > 0) break;
-      schoolParts.push(p);
+    if (line.includes('הזמנה עבור בית ספר')) { schoolLine = line; break; }
+  }
+
+  if (schoolLine) {
+    // Match against known clients from loaded data
+    const knownClients = [...new Set(
+      Object.values(D).flat().map(r => String(r[C.name]||'').trim()).filter(Boolean)
+    )];
+
+    let bestMatch = '';
+    for (const client of knownClients) {
+      if (client && schoolLine.includes(client) && client.length > bestMatch.length) {
+        bestMatch = client;
+      }
     }
-    school = schoolParts.join(' ').replace(/^[,\s]+|[,\s]+$/g, '').trim();
-    if (school) break;
+
+    if (bestMatch) {
+      school = bestMatch;
+    } else {
+      // Fallback: extract text after marker until first number
+      const after = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[,\s]+/, '').trim();
+      const m = after.match(/^([^\d,]+?)(?:\s+\d|,|$)/);
+      school = m ? m[1].trim() : after.split(',')[0].trim();
+    }
+  }
   }
 
   // Find books and quantities
@@ -844,56 +861,188 @@ function showPreview(data){
   card.style.display='block';
 
   const books = data.books || [];
+  // Get previous year data for comparison
+  const prevYear = YEARS[1].label;
+  const prevRows = D[prevYear] || [];
+  const prevRow = prevRows.find(r => String(r[C.name]||'').trim() === data.school);
+
+  // Pre-calculate gaps for preview
+  const previewGaps = calcGaps(data.books || [], data.school);
+
   const booksHtml = books.length ? `
     <div style="margin-top:12px">
-      <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">ספרים שהוזמנו</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">
-        ${books.map(b=>`<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${b.name}</div>
-          <div style="font-size:20px;font-weight:900;color:var(--accent)">${b.qty}</div>
-        </div>`).join('')}
+      <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">
+        ספרים שהוזמנו
+        ${prevRow ? `<span style="font-weight:400;color:var(--muted)"> — השוואה ל${prevYear}</span>` : '<span style="font-weight:400;color:var(--muted)"> (אין נתוני השוואה)</span>'}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+        ${books.map(b => {
+          const prevQty = prevRow ? (Number(prevRow[b.name]) || 0) : null;
+          const diff = prevQty !== null ? b.qty - prevQty : null;
+          const diffColor = diff === null ? '' : diff > 0 ? '#1a6b35' : diff < 0 ? 'var(--danger)' : 'var(--muted)';
+          const diffText = diff === null ? '' : diff > 0 ? `▲ +${diff}` : diff < 0 ? `▼ ${diff}` : '= זהה';
+          return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${b.name}</div>
+            <div style="font-size:20px;font-weight:900;color:var(--accent)">${b.qty}</div>
+            ${prevQty !== null ? `<div style="font-size:11px;color:${diffColor};margin-top:2px">${diffText} (${prevYear}: ${prevQty})</div>` : ''}
+          </div>`;
+        }).join('')}
       </div>
     </div>` : '<div style="color:var(--muted);font-size:13px;margin-top:12px">לא זוהו ספרים — בדקי ידנית</div>';
 
+  const isNew = !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === data.school);
+  const isUnknown = !data.school || data.school === 'לא זוהה';
+
   content.innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px">
-      <div style="background:var(--surface2);border-radius:8px;padding:10px 14px">
-        <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">בית ספר</div>
-        <div style="font-size:14px;font-weight:700">${data.school||'לא זוהה'}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div style="background:${isNew||isUnknown?'#fffbec':'var(--surface2)'};border:${isNew||isUnknown?'1px solid #f5e0a0':'1px solid transparent'};border-radius:8px;padding:10px 14px">
+        <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:5px">
+          בית ספר
+          ${isNew&&!isUnknown?'<span style="background:#e8f0ff;color:#2d4fa0;border:1px solid #c0cdf7;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">🆕 חדש</span>':''}
+          ${isUnknown?'<span style="background:#fffbec;color:#7a5c00;border:1px solid #f5e0a0;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">⚠️ לא זוהה</span>':''}
+        </div>
+        <input id="schoolEdit" value="${isUnknown?'':data.school}" placeholder="הכניסי שם בית ספר..." 
+          style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;font-family:'Heebo',sans-serif;color:var(--text);padding:2px 0;outline:none"
+          oninput="pendingOrder.school=this.value"/>
+        ${isUnknown?'<div style="font-size:11px;color:var(--warning,#c9a84c);margin-top:4px">ערכי את שם בית הספר לפני האישור</div>':''}
       </div>
       <div style="background:var(--surface2);border-radius:8px;padding:10px 14px">
         <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">תאריך</div>
         <div style="font-size:14px;font-weight:700">${data.date||new Date().toLocaleDateString('he-IL')}</div>
       </div>
     </div>
-    ${data.contact?`<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:4px">
+    ${data.contact?`<div style="background:var(--surface2);border-radius:8px;padding:10px 14px;margin-bottom:10px">
       <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">איש קשר</div>
       <div style="font-size:13px;font-weight:600">${data.contact}</div>
     </div>`:''}
     ${booksHtml}
+    ${previewGaps.length ? `<div style="margin-top:14px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">📊 פערים מול ${prevYear}</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${previewGaps.map(g => {
+          const c = gapColor(g.type);
+          return `<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:${c.bg};border:1px solid ${c.border};font-size:12px;font-weight:500;color:${c.color}">
+            <span>${gapIcon(g.type)}</span><span>${g.text}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
     ${data.rawText?`<details style="margin-top:12px"><summary style="font-size:12px;color:var(--muted);cursor:pointer">הצג טקסט גולמי מה-PDF</summary><pre style="font-size:11px;background:var(--surface2);padding:10px;border-radius:8px;margin-top:8px;overflow-x:auto;white-space:pre-wrap;direction:rtl">${data.rawText.slice(0,800)}</pre></details>`:''}
   `;
 }
 
+// ── Gap types ──
+// 'new_client'  = yellow  🟡
+// 'new_book'    = pink    🩷
+// 'removed_book'= teal    🩵
+// 'qty_change'  = normal
+
+function calcGaps(books, schoolName) {
+  const prevYear = YEARS[1].label;
+  const prevRows = D[prevYear] || [];
+  const allPrevNames = new Set(
+    Object.values(D).flat().map(r => String(r[C.name]||'').trim()).filter(Boolean)
+  );
+  const prevRow = prevRows.find(r => String(r[C.name]||'').trim() === schoolName);
+  const isNewClient = !allPrevNames.has(schoolName);
+
+  const gaps = [];
+
+  if (isNewClient) {
+    const bookList = books.filter(b=>b.qty>0).map(b=>`${b.name} ${b.qty}`).join(', ');
+    gaps.push({ type:'new_client', text:`לקוח חדש${bookList?' — '+bookList:''}` });
+    return gaps;
+  }
+
+  for (const {name, qty} of books) {
+    const prevQty = prevRow ? (Number(prevRow[name]) || 0) : 0;
+    if (qty > 0 && prevQty === 0) {
+      // Added a new book entirely
+      gaps.push({ type:'new_book', text:`ספר חדש: ${name} (${qty})` });
+    } else if (qty === 0 && prevQty > 0) {
+      // Removed a book entirely
+      gaps.push({ type:'removed_book', text:`הורידו: ${name} (היה ${prevQty})` });
+    } else if (qty !== prevQty && qty > 0 && prevQty > 0) {
+      const diff = qty - prevQty;
+      gaps.push({ type:'qty_change', text:`${name}: ${diff>0?'+':''}${diff} (${prevQty}→${qty})` });
+    }
+  }
+
+  return gaps;
+}
+
+function gapColor(type) {
+  switch(type) {
+    case 'new_client':   return { bg:'#fffbec', border:'#f5e0a0', color:'#7a5c00' }; // צהוב
+    case 'new_book':     return { bg:'#fce8f3', border:'#f0b3d8', color:'#8b1a5a' }; // ורוד
+    case 'removed_book': return { bg:'#e8f7fa', border:'#a8dce8', color:'#1a5f72' }; // תכלת
+    default:             return { bg:'var(--surface2)', border:'var(--border)', color:'var(--text)' };
+  }
+}
+
+function gapIcon(type) {
+  switch(type) {
+    case 'new_client':   return '🟡';
+    case 'new_book':     return '🩷';
+    case 'removed_book': return '🩵';
+    default:             return '📊';
+  }
+}
+
 async function approveOrder(){
   if(!pendingOrder)return;
-  const btn=document.querySelector('#previewCard button');
+
+  // Update school name from edit field
+  const schoolEdit = document.getElementById('schoolEdit');
+  if (schoolEdit) pendingOrder.school = schoolEdit.value.trim() || pendingOrder.school;
+
+  if (!pendingOrder.school || pendingOrder.school === 'לא זוהה') {
+    showUploadStatus('error','❌ אנא הכניסי שם בית ספר לפני האישור');
+    return;
+  }
+
+  const btn = document.querySelector('#previewCard button');
   btn.textContent='⏳ שומר...'; btn.disabled=true;
 
+  // Calculate gaps vs previous year
+  const gaps = calcGaps(pendingOrder.books || [], pendingOrder.school);
+  pendingOrder.gaps = gaps.map(g=>g.text).join(' | ');
+  pendingOrder.gapType = gaps[0]?.type || '';
+
+  // Build payload for Make/Google Sheets
+  const payload = {
+    action: 'save',
+    year: 'תשפז',
+    school: pendingOrder.school,
+    contact: pendingOrder.contact || '',
+    gaps: pendingOrder.gaps,
+    isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === pendingOrder.school),
+  };
+
+  // Add book quantities
+  for (const {name, qty} of (pendingOrder.books || [])) {
+    payload[name] = qty;
+  }
+
   try {
-    const res = await fetch(UPLOAD_WEBHOOK, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({...pendingOrder, action:'approve', year:'תשפז'})
+    const SAVE_WEBHOOK = 'https://hook.eu2.make.com/cajje0kzm7hfxhe8fetgb5pzfe85blc7';
+    const res = await fetch(SAVE_WEBHOOK, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
     });
-    if(res.ok){
+
+    if (res.ok) {
       document.getElementById('previewCard').style.display='none';
-      showUploadStatus('success','🎉 ההזמנה נשמרה בהצלחה לגיליון תשפ"ז!');
-      pendingOrder=null;
+      showUploadStatus('success',`🎉 ההזמנה של ${pendingOrder.school} נשמרה לגיליון תשפ"ז!${gaps.length?'\n📊 פערים: '+gaps.map(g=>g.text).join(' | '):''}`);
+      pendingOrder = null;
       document.getElementById('pdfInput').value='';
-      setTimeout(()=>{ activeY='תשפ"ז'; updYbtns(); render(); },1500);
+      // Reload data after 2 seconds
+      setTimeout(async()=>{ await init(); activeY='תשפ"ז'; updYbtns(); render(); }, 2000);
+    } else {
+      throw new Error(`HTTP ${res.status}`);
     }
-  } catch(e){
+  } catch(e) {
     showUploadStatus('error','❌ שגיאה בשמירה: '+e.message);
     btn.textContent='✅ אשרי ושמרי לתשפ"ז'; btn.disabled=false;
   }
