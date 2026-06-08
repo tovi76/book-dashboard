@@ -913,17 +913,45 @@ function showPreview(data){
         ${prevRow ? `<span style="font-weight:400;color:var(--muted)"> — השוואה ל${prevYear}</span>` : '<span style="font-weight:400;color:var(--muted)"> (אין נתוני השוואה)</span>'}
       </div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
-        ${books.map(b => {
-          const prevQty = prevRow ? (Number(prevRow[b.name]) || 0) : null;
-          const diff = prevQty !== null ? b.qty - prevQty : null;
-          const diffColor = diff === null ? '' : diff > 0 ? '#1a6b35' : diff < 0 ? 'var(--danger)' : 'var(--muted)';
-          const diffText = diff === null ? '' : diff > 0 ? `▲ +${diff}` : diff < 0 ? `▼ ${diff}` : '= זהה';
-          return `<div style="background:var(--surface2);border-radius:8px;padding:10px 12px;text-align:center">
-            <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${b.name}</div>
-            <div style="font-size:20px;font-weight:900;color:var(--accent)">${b.qty}</div>
-            ${prevQty !== null ? `<div style="font-size:11px;color:${diffColor};margin-top:2px">${diffText} (${prevYear}: ${prevQty})</div>` : ''}
-          </div>`;
-        }).join('')}
+        ${(() => {
+          // All books to show: ordered this year + those dropped from last year
+          const allBooks = [...books];
+          if (prevRow) {
+            for (const bookName of BOOKS) {
+              const prevQty = Number(prevRow[bookName]) || 0;
+              const nowQty = books.find(b=>b.name===bookName)?.qty || 0;
+              if (prevQty > 0 && nowQty === 0) {
+                allBooks.push({name: bookName, qty: 0, dropped: true});
+              }
+            }
+          }
+          return allBooks.map(b => {
+            const prevQty = prevRow ? (Number(prevRow[b.name]) || 0) : null;
+            const diff = prevQty !== null ? b.qty - prevQty : null;
+            // Card background based on gap type
+            let cardBg = 'var(--surface2)';
+            let cardBorder = '1px solid var(--border)';
+            let diffColor = 'var(--muted)';
+            let diffText = '';
+            if (b.dropped) {
+              cardBg = '#c8eef5'; cardBorder = '2px solid #5bb8d4';
+            } else if (prevQty === 0 && b.qty > 0) {
+              cardBg = '#f7c8e0'; cardBorder = '2px solid #e0609a';
+            } else if (diff !== null && diff !== 0) {
+              diffColor = diff > 0 ? '#1a6b35' : '#c0392b';
+              diffText = diff > 0 ? `▲ +${diff}` : `▼ ${diff}`;
+            }
+            if (prevQty !== null && !b.dropped) {
+              diffText = diffText || '= זהה';
+            }
+            return `<div style="background:${cardBg};border:${cardBorder};border-radius:8px;padding:10px 12px;text-align:center">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${b.name}</div>
+              <div style="font-size:20px;font-weight:900;color:${b.dropped?'#1a5f72':'var(--accent)'}">${b.dropped?'—':b.qty}</div>
+              ${b.dropped ? `<div style="font-size:11px;color:#1a5f72;margin-top:2px">היה ${prevQty} — הורד</div>` :
+                prevQty !== null ? `<div style="font-size:11px;color:${diffColor};margin-top:2px">${diffText}${prevQty>0?` (${prevYear}: ${prevQty})`:''}</div>` : ''}
+            </div>`;
+          }).join('');
+        })()}
       </div>
     </div>` : '<div style="color:var(--muted);font-size:13px;margin-top:12px">לא זוהו ספרים — בדקי ידנית</div>';
 
@@ -990,17 +1018,25 @@ function calcGaps(books, schoolName) {
     return gaps;
   }
 
+  // Check books ordered this year
   for (const {name, qty} of books) {
     const prevQty = prevRow ? (Number(prevRow[name]) || 0) : 0;
     if (qty > 0 && prevQty === 0) {
-      // Added a new book entirely
       gaps.push({ type:'new_book', text:`ספר חדש: ${name} (${qty})` });
-    } else if (qty === 0 && prevQty > 0) {
-      // Removed a book entirely
-      gaps.push({ type:'removed_book', text:`הורידו: ${name} (היה ${prevQty})` });
     } else if (qty !== prevQty && qty > 0 && prevQty > 0) {
       const diff = qty - prevQty;
       gaps.push({ type:'qty_change', text:`${name}: ${diff>0?'+':''}${diff} (${prevQty}→${qty})` });
+    }
+  }
+
+  // Check books that existed last year but NOT ordered this year
+  if (prevRow) {
+    for (const bookName of BOOKS) {
+      const prevQty = Number(prevRow[bookName]) || 0;
+      const nowQty = books.find(b => b.name === bookName)?.qty || 0;
+      if (prevQty > 0 && nowQty === 0) {
+        gaps.push({ type:'removed_book', text:`הורידו: ${bookName} (היה ${prevQty})` });
+      }
     }
   }
 
