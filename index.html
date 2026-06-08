@@ -210,34 +210,19 @@ tr:hover td{background:var(--surface2);cursor:pointer}
       </div>
     </div>
     <div class="g21">
-      <div class="card">
-        <div class="ctitle">לקוחות לפי עיר <span class="cbadge" id="ctotal"></span></div>
-        <div class="citylist" id="citylist"></div>
-      </div>
-      <div class="card">
-        <div class="ctitle">📦 ארגזים לפי שליח</div>
-        <div class="boxinfo" id="boxinfo"></div>
-      </div>
+
+
     </div>
     <div class="g2">
       <div class="card">
         <div class="ctitle">⏳ לא סופקו עדיין</div>
         <div class="alist" id="nslist"></div>
       </div>
-      <div class="card">
-        <div class="ctitle">⚠️ פערים פתוחים</div>
-        <div class="alist" id="gaplist"></div>
-      </div>
+
     </div>
     <div class="g2">
-      <div class="card">
-        <div class="ctitle">💰 סטטוס תשלומים</div>
-        <div class="slist" id="paylist"></div>
-      </div>
-      <div class="card">
-        <div class="ctitle">💳 סופקו — לא שילמו</div>
-        <div class="alist" id="nopay"></div>
-      </div>
+
+
     </div>
   </div>
 
@@ -323,7 +308,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         <div class="ctitle">👁️ תצוגה מקדימה — אשרי לפני שמירה</div>
         <div id="previewContent"></div>
         <div style="display:flex;gap:10px;margin-top:20px">
-          <button onclick="approveOrder()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי לתשפ"ז</button>
+          <button id="approveBtn" onclick="approveOrder()" style="flex:1;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי לתשפ"ז</button>
           <button onclick="rejectOrder()" style="padding:12px 20px;background:none;border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">❌ בטלי</button>
         </div>
       </div>
@@ -351,6 +336,8 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 <script>
 // ══ CONFIG ══
 const SHEET_ID = '151HfnYDeUVQc7qbtr5bqkPgLtPOrWhIAJE0nsdqDq2o';
+// ════ להוספת שנה חדשה — הוסיפי שורה בתחילת הרשימה: ════
+// {label:'תשפ"ח', tab:'מכירות לקראת תשפח'},
 const YEARS = [
   {label:'תשפ"ז', tab:'מכירות לקראת תשפז'},
   {label:'תשפ"ו', tab:'מכירות לקראת תשפו'},
@@ -433,12 +420,7 @@ function render(){
   renderKPIs(rows,prev);
   renderBars(rows,prev);
   renderStatus(rows);
-  renderCities(rows);
-  renderBoxes(rows);
   renderNS(rows);
-  renderGaps(rows);
-  renderPay(rows);
-  renderNoPay(rows);
   renderClientsTab(rows);
   renderCompare(rows,prev);
   renderAlerts(rows,prev);
@@ -655,18 +637,23 @@ function openCard(encoded){
   document.getElementById('ccMeta').innerHTML=meta.map(m=>`<div class="cc-mitem"><div class="cc-mlbl">${m.l}</div><div class="cc-mval">${m.v}</div></div>`).join('');
 
   // Years history
+  const currentYear = YEARS[0].label; // תשפ"ז
   document.getElementById('ccYears').innerHTML=yearData.map(({year,r})=>{
     const books=BOOKS.filter(b=>bqty(r,b)>0);
+    const isCurrent = year === currentYear;
     const sup=isSup(r), paid=isPaid(r);
+    const guides = Math.floor(BOOKS.reduce((s,b)=>s+bqty(r,b),0)/40);
     return`<div class="cc-yr">
       <div class="cc-yrtitle">📅 ${year}
-        <span class="badge ${sup?'b-yes':'b-no'}" style="margin-right:8px">${sup?'סופק':'לא סופק'}</span>
-        <span class="badge ${paid?'b-paid':'b-no'}">${paid?'שולם':'לא שולם'}</span>
-        ${r[C.boxes]?`<span style="font-size:11px;color:var(--muted);margin-right:8px">📦 ${r[C.boxes]} ארגזים</span>`:''}
+        ${isCurrent?`<span class="badge ${sup?'b-yes':'b-no'}" style="margin-right:8px">${sup?'✅ סופק':'⏳ לא סופק'}</span>`:''}
+        ${isCurrent?`<span class="badge ${paid?'b-paid':'b-no'}">${paid?'💜 שולם':'💳 לא שולם'}</span>`:''}
+        ${isCurrent&&guides>0?`<span style="font-size:11px;color:var(--gold);margin-right:8px;font-weight:600">📚 ${guides} מדריכים</span>`:''}
       </div>
-      <div class="cc-yrgrid">${books.map(b=>`<div class="cc-yritem"><div class="cc-yrbook">${b}</div><div class="cc-yrqty">${bqty(r,b)}</div></div>`).join('')||'<div style="color:var(--muted);font-size:12px">אין הזמנה</div>'}</div>
-      ${r[C.notes]?`<div class="cc-notes">💬 ${r[C.notes]}</div>`:''}
-      ${r[C.gaps]?`<div class="cc-notes" style="background:#fffbec;border:1px solid #f5e0a0">⚠️ פערים: ${r[C.gaps]}</div>`:''}
+      <div class="cc-yrgrid">
+        ${books.map(b=>`<div class="cc-yritem"><div class="cc-yrbook">${b}</div><div class="cc-yrqty">${bqty(r,b)}</div></div>`).join('')||'<div style="color:var(--muted);font-size:12px">אין הזמנה</div>'}
+      </div>
+      ${isCurrent&&r[C.notes]?`<div class="cc-notes">💬 ${r[C.notes]}</div>`:''}
+      ${isCurrent&&r[C.gaps]?`<div class="cc-notes" style="background:#fffbec;border:1px solid #f5e0a0">⚠️ פערים: ${r[C.gaps]}</div>`:''}
     </div>`;
   }).join('');
 
@@ -699,6 +686,36 @@ init();
 
 // ══ PDF UPLOAD ══
 const UPLOAD_WEBHOOK = 'https://hook.eu2.make.com/hheatnr5psu19135roiu2atn9c38awx5';
+
+function filterSchoolList(q, currentSchool) {
+  const dd = document.getElementById('schoolDropdown');
+  if (!dd) return;
+  const items = dd.querySelectorAll('.sditem');
+  let hasVisible = false;
+  items.forEach(item => {
+    const name = item.textContent;
+    const show = !q || name.includes(q);
+    item.style.display = show ? 'block' : 'none';
+    if (show) hasVisible = true;
+  });
+  dd.style.display = hasVisible ? 'block' : 'none';
+}
+
+function selectSchool(name, el) {
+  const input = document.getElementById('schoolEdit');
+  if (input) { input.value = name; }
+  pendingOrder.school = name;
+  const dd = document.getElementById('schoolDropdown');
+  if (dd) dd.style.display = 'none';
+  showPreview(pendingOrder);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#schoolSearch') && !e.target.closest('#schoolDropdown')) {
+    const dd = document.getElementById('schoolDropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
 let pendingOrder = null;
 
 // Drag & drop
@@ -949,12 +966,16 @@ function showPreview(data){
         <input id="schoolEdit" value="${data.school||''}" placeholder="שם בית ספר..." 
           style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;font-family:'Heebo',sans-serif;color:var(--text);padding:4px 0;outline:none;margin-bottom:8px"
           oninput="pendingOrder.school=this.value"/>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">או בחרי מרשימה:</div>
-        <select onchange="if(this.value){document.getElementById('schoolEdit').value=this.value;pendingOrder.school=this.value;showPreview(pendingOrder)}"
-          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 8px;font-family:'Heebo',sans-serif;font-size:12px;color:var(--text);outline:none;cursor:pointer">
-          <option value="">— בחרי לקוח קיים —</option>
-          ${clientList.map(c=>`<option value="${c}" ${c===data.school?'selected':''}>${c}</option>`).join('')}
-        </select>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">חיפוש מרשימה:</div>
+        <div style="position:relative">
+          <input id="schoolSearch" placeholder="הקלידי לחיפוש..." autocomplete="off"
+            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:12px;color:var(--text);outline:none"
+            oninput="filterSchoolList(this.value,'${data.school}')"
+            onfocus="filterSchoolList(this.value,'${data.school}')"/>
+          <div id="schoolDropdown" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:180px;overflow-y:auto;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.12)">
+            ${clientList.map(c=>`<div class="sditem" onclick="selectSchool('${c.replace(/'/g,"\\'")}',this)" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('')}
+          </div>
+        </div>
       </div>
             <div style="background:var(--surface2);border-radius:8px;padding:10px 14px">
         <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:3px">תאריך</div>
@@ -1058,7 +1079,7 @@ async function approveOrder(){
     return;
   }
 
-  const btn = document.querySelector('#previewCard button');
+  const btn = document.getElementById('approveBtn');
   btn.textContent='⏳ שומר...'; btn.disabled=true;
 
   // Calculate gaps vs previous year
@@ -1091,17 +1112,28 @@ async function approveOrder(){
 
     if (res.ok) {
       document.getElementById('previewCard').style.display='none';
+      const approveBtn2 = document.getElementById('approveBtn');
+      if(approveBtn2){approveBtn2.textContent='✅ אשרי ושמרי לתשפ"ז';approveBtn2.disabled=false;}
       showUploadStatus('success',`🎉 ההזמנה של ${pendingOrder.school} נשמרה לגיליון תשפ"ז!${gaps.length?'\n📊 פערים: '+gaps.map(g=>g.text).join(' | '):''}`);
       pendingOrder = null;
       document.getElementById('pdfInput').value='';
-      // Reload data after 2 seconds
-      setTimeout(async()=>{ await init(); activeY='תשפ"ז'; updYbtns(); render(); }, 2000);
+      // Reload data after 2 seconds (without rebuilding year buttons)
+      setTimeout(async()=>{
+        for (const y of YEARS) {
+          try {
+            const {cols,rows} = await fetchTab(y.tab);
+            D[y.label]=rows; H[y.label]=cols;
+          } catch(e) { console.warn('skip',y.tab); }
+        }
+        activeY='תשפ"ז'; updYbtns(); render();
+      }, 2000);
     } else {
       throw new Error(`HTTP ${res.status}`);
     }
   } catch(e) {
     showUploadStatus('error','❌ שגיאה בשמירה: '+e.message);
-    btn.textContent='✅ אשרי ושמרי לתשפ"ז'; btn.disabled=false;
+    btn.textContent='✅ אשרי ושמרי לתשפ"ז';
+    btn.disabled=false;
   }
 }
 
