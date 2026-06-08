@@ -784,17 +784,15 @@ async function processPDF(file){
     try { response = JSON.parse(text); } catch(e) { response = {raw: text}; }
 
     // Parse the raw text
+    // Extract rawText from potentially nested JSON
     let rawText = '';
-    if (response.rawText) {
-      rawText = response.rawText;
-    } else if (response.raw) {
-      // Try to extract rawText from nested JSON
-      try {
-        const inner = JSON.parse(response.raw);
-        rawText = inner.rawText || response.raw;
-      } catch(e) {
-        rawText = response.raw;
-      }
+    try {
+      // response.raw contains a JSON string like '{"rawText": "...", "status": "ok"}'
+      const rawStr = response.raw || JSON.stringify(response);
+      const inner = JSON.parse(rawStr);
+      rawText = inner.rawText || rawStr;
+    } catch(e) {
+      rawText = response.rawText || response.raw || '';
     }
 
     if (!rawText) {
@@ -802,13 +800,16 @@ async function processPDF(file){
       return;
     }
 
-    // Reverse each line since PDF text is RTL-reversed
-    const reversedLines = rawText.split(/\r?\n/).map(line => {
+    // The text is RTL-reversed per line — normalize it
+    const normalizedText = rawText.split(/\r?\n/).map(line => {
       const cleaned = cleanRTL(line).trim();
-      // Reverse words in line
-      return cleaned.split(/\s+/).reverse().join(' ');
-    });
-    const normalizedText = reversedLines.join('\n');
+      if (!cleaned) return '';
+      // Reverse words order to get correct Hebrew reading direction
+      const words = cleaned.split(/\s+/);
+      return words.reverse().join(' ');
+    }).join('\n');
+
+    console.log('Normalized text:', normalizedText.slice(0, 500));
 
     const data = parsePDFText(normalizedText);
     data.date = new Date().toLocaleDateString('he-IL');
