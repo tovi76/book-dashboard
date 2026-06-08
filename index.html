@@ -743,9 +743,16 @@ function parsePDFText(raw) {
       Object.values(D).flat().map(r => String(r[C.name]||'').trim()).filter(Boolean)
     )];
 
+    // Normalize for comparison — remove quotes/apostrophes and extra spaces
+    function normMatch(s) {
+      return s.replace(/[''׳`'"]/g, '').replace(/\s+/g,' ').trim().toLowerCase();
+    }
+    const normSchoolLine = normMatch(schoolLine);
+
     let bestMatch = '';
     for (const client of knownClients) {
-      if (client && schoolLine.includes(client) && client.length > bestMatch.length) {
+      const normClient = normMatch(client);
+      if (normClient && normSchoolLine.includes(normClient) && client.length > bestMatch.length) {
         bestMatch = client;
       }
     }
