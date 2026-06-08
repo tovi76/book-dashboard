@@ -878,6 +878,10 @@ async function processPDF(file){
     data.date = new Date().toLocaleDateString('he-IL');
 
     pendingOrder = data;
+    // Ensure data is loaded before showing preview
+    if (!Object.values(D).some(arr=>arr.length>0)) {
+      await init();
+    }
     showPreview(data);
     showUploadStatus('success','✅ הקובץ עובד בהצלחה — אשרי את ההזמנה למטה');
   } catch(e) {
@@ -897,8 +901,10 @@ function showPreview(data){
   const prevRows = D[prevYear] || [];
   const prevRow = prevRows.find(r => String(r[C.name]||'').trim() === data.school);
 
-  // Pre-calculate gaps for preview
-  const previewGaps = calcGaps(data.books || [], data.school);
+  // Pre-calculate gaps for preview (after D is loaded)
+  const previewGaps = (Object.values(D).some(arr=>arr.length>0))
+    ? calcGaps(data.books || [], data.school)
+    : [];
 
   const booksHtml = books.length ? `
     <div style="margin-top:12px">
