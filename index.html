@@ -240,18 +240,18 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 </header>
 
 <nav>
-  <button class="nv on" data-page="dash">📊 דשבורד</button>
+  <button class="nv" data-page="dash">📊 דשבורד</button>
   <button class="nv" data-page="clients">🏫 לקוחות</button>
   <button class="nv" data-page="compare">📈 השוואה</button>
   <button class="nv" data-page="alerts">🔔 התראות</button>
-  <button class="nv" data-page="upload">📄 העלאת הזמנה</button>
+  <button class="nv on" data-page="upload">📄 העלאת הזמנה</button>
 </nav>
 
 <main>
   <div class="err" id="err"></div>
 
   <!-- ══ DASHBOARD ══ -->
-  <div class="page on" id="pg-dash">
+  <div class="page" id="pg-dash">
     <div class="kgrid" id="kgrid"></div>
     <div class="g2">
       <div class="card">
@@ -348,7 +348,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
     </div>
   </div>
   <!-- ══ UPLOAD ══ -->
-  <div class="page" id="pg-upload">
+  <div class="page on" id="pg-upload">
     <!-- Upload area (shown before PDF loaded) -->
     <div id="uploadArea" style="max-width:560px;margin:0 auto">
       <div class="card" style="margin-bottom:16px">
