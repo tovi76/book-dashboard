@@ -491,15 +491,23 @@ let reminders = [];
 
 async function loadReminders() {
   try {
-    const { rows } = await fetchTab('תזכורות');
-    reminders = rows
-      .filter(r => String(r['טקסט'] || '').trim())
-      .map(r => ({
-        date:   String(r['תאריך'] || '').trim(),
-        text:   String(r['טקסט']  || '').trim(),
-        done:   String(r['בוצע']  || '').trim().toLowerCase() === 'כן',
-        school: String(r['בית ספר'] || '').trim(),
-      }));
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent('תזכורות')}`;
+    const txt = await (await fetch(url)).text();
+    const m = txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+    if (!m) throw new Error('parse error');
+    const json = JSON.parse(m[1]);
+    const cols = json.table.cols.map(c => c.label || '');
+    console.log('תזכורות cols:', cols);
+    const rows = (json.table.rows || []).map(r =>
+      Object.fromEntries(cols.map((c, i) => [c, r?.c?.[i]?.v ?? '']))
+    ).filter(r => String(r['טקסט'] || '').trim());
+    console.log('תזכורות rows:', rows);
+    reminders = rows.map(r => ({
+      date:   String(r['תאריך'] || '').trim(),
+      text:   String(r['טקסט']  || '').trim(),
+      done:   String(r['בוצע']  || '').trim() === 'כן',
+      school: String(r['בית ספר'] || '').trim(),
+    }));
   } catch(e) {
     reminders = [];
     console.warn('reminders not loaded', e.message);
