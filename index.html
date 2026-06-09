@@ -1485,6 +1485,7 @@ async function approveOrder(){
   const payload = {
     action: 'save',
     year: 'תשפז',
+    date: new Date().toLocaleDateString('he-IL'),
     school: pendingOrder.school,
     contact: pendingOrder.contact || '',
     phone:   pendingOrder.phone   || '',
@@ -1496,9 +1497,10 @@ async function approveOrder(){
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === pendingOrder.school),
   };
 
-  // Add book quantities
-  for (const {name, qty} of (pendingOrder.books || [])) {
-    payload[name] = qty;
+  // Add book quantities — always send all books (0 if not ordered)
+  for (const book of BOOKS) {
+    const found = (pendingOrder.books || []).find(b => b.name === book);
+    payload[book] = found ? found.qty : '';
   }
 
   try {
