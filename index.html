@@ -415,9 +415,10 @@ tr:hover td{background:var(--surface2);cursor:pointer}
   </div>
 </div>
 
+<script src="config.js"></script>
 <script>
 // ══ CONFIG ══
-const SHEET_ID = '151HfnYDeUVQc7qbtr5bqkPgLtPOrWhIAJE0nsdqDq2o';
+const SHEET_ID = CONFIG.SHEET_ID;
 // ════ שנים — נטענות מגיליון "הגדרות" בשיטס ════
 let YEARS = [
   {label:'תשפ"ז', tab:'מכירות לקראת תשפז'},
@@ -899,9 +900,8 @@ async function saveManualOrder(){
     date, note, ...books
   };
 
-  const SAVE_WEBHOOK = 'https://hook.eu2.make.com/cajje0kzm7hfxhe8fetgb5pzfe85blc7';
   try {
-    const res = await fetch(SAVE_WEBHOOK, {
+    const res = await fetch(CONFIG.SAVE_WEBHOOK, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(payload)
     });
@@ -991,7 +991,7 @@ function showErr(m){const e=document.getElementById('err');e.style.display='bloc
 init();
 
 // ══ PDF UPLOAD ══
-const UPLOAD_WEBHOOK = 'https://hook.eu2.make.com/hheatnr5psu19135roiu2atn9c38awx5';
+const UPLOAD_WEBHOOK = CONFIG.UPLOAD_WEBHOOK;
 
 function filterSchoolList(q, currentSchool) {
   const dd = document.getElementById('schoolDropdown');
@@ -1502,8 +1502,7 @@ async function approveOrder(){
   }
 
   try {
-    const SAVE_WEBHOOK = 'https://hook.eu2.make.com/cajje0kzm7hfxhe8fetgb5pzfe85blc7';
-    const res = await fetch(SAVE_WEBHOOK, {
+    const res = await fetch(CONFIG.SAVE_WEBHOOK, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(payload)
