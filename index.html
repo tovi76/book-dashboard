@@ -273,7 +273,15 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         <div class="ctitle">⏳ לא סופקו עדיין</div>
         <div class="alist" id="nslist"></div>
       </div>
-
+      <!-- תזכורות -->
+      <div class="card">
+        <div class="ctitle">📌 תזכורות
+          <span style="font-size:11px;color:var(--muted);font-weight:400">— נערכות ישירות בשיטס</span>
+        </div>
+        <div id="reminders-list">
+          <div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">טוען...</div>
+        </div>
+      </div>
     </div>
     <div class="g2">
 
@@ -478,6 +486,76 @@ async function loadYearsFromStorage() {
   }
 }
 
+// ══ REMINDERS ══
+let reminders = [];
+
+async function loadReminders() {
+  try {
+    const { rows } = await fetchTab('תזכורות');
+    reminders = rows
+      .filter(r => String(r['טקסט'] || '').trim())
+      .map(r => ({
+        date:   String(r['תאריך'] || '').trim(),
+        text:   String(r['טקסט']  || '').trim(),
+        done:   String(r['בוצע']  || '').trim().toLowerCase() === 'כן',
+        school: String(r['בית ספר'] || '').trim(),
+      }));
+  } catch(e) {
+    reminders = [];
+    console.warn('reminders not loaded', e.message);
+  }
+  renderReminders();
+}
+
+function renderReminders() {
+  const el = document.getElementById('reminders-list');
+  if (!el) return;
+
+  const open   = reminders.filter(r => !r.done);
+  const done   = reminders.filter(r =>  r.done);
+
+  if (!reminders.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">
+      אין תזכורות — הוסיפי שורות בגיליון <strong>תזכורות</strong> בשיטס
+    </div>`;
+    return;
+  }
+
+  const row = r => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;
+      background:${r.done ? 'var(--surface2)' : 'var(--surface)'};
+      border:1px solid ${r.done ? 'var(--border)' : '#f5c842'};
+      opacity:${r.done ? '.55' : '1'};margin-bottom:6px">
+      <div style="font-size:18px;margin-top:1px">${r.done ? '✅' : '📌'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:${r.done ? '400' : '600'};
+          text-decoration:${r.done ? 'line-through' : 'none'};color:var(--text)">
+          ${r.text}
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+          ${r.date   ? `<span style="font-size:11px;color:var(--muted)">📅 ${r.date}</span>` : ''}
+          ${r.school ? `<span style="font-size:11px;color:var(--accent);font-weight:600">🏫 ${r.school}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+
+  el.innerHTML = `
+    ${open.length ? `
+      <div style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+        color:var(--dim);margin-bottom:8px">פתוחות (${open.length})</div>
+      ${open.map(row).join('')}
+    ` : '<div style="font-size:12px;color:#1a6b35;padding:8px 12px;background:#e6f4ec;border-radius:8px;margin-bottom:10px">✅ אין תזכורות פתוחות</div>'}
+    ${done.length ? `
+      <details style="margin-top:10px">
+        <summary style="font-size:11px;color:var(--muted);cursor:pointer;user-select:none">
+          הצג שבוצעו (${done.length})
+        </summary>
+        <div style="margin-top:8px">${done.map(row).join('')}</div>
+      </details>
+    ` : ''}
+  `;
+}
+
 async function init(){
   await loadYearsFromStorage();
   buildYbtns();
@@ -499,6 +577,7 @@ async function init(){
   updYbtns();
   render();
   hideLoader();
+  loadReminders(); // async — no await, loads in background
 }
 
 // ── Hebrew year names ──
