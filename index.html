@@ -232,7 +232,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 <div id="loader"><div class="spin"></div><div id="ltxt" style="font-size:13px;color:var(--muted)">טוען...</div></div>
 
 <header>
-  <div class="hlogo">📚 <span>מכירות ספרים</span> <span class="live-dot"></span></div>
+  <div class="hlogo">📚 <span>ספרי לימוד</span> <span class="live-dot"></span></div>
   <div class="hright" style="display:flex;align-items:center;gap:10px">
     <div id="ybtns" style="display:flex;gap:6px"></div>
     <button onclick="addNextYear()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-family:'Heebo',sans-serif;font-size:12px;padding:5px 12px;border-radius:20px;cursor:pointer;transition:all .2s" title="הוסף שנת לימודים חדשה">＋ שנה</button>
@@ -418,6 +418,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
     </div>
     <div class="cc-body">
       <div class="cc-meta" id="ccMeta"></div>
+      <div id="ccReminders" style="display:none;background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:14px;border:1px solid #f5c842"></div>
       <div id="ccYears"></div>
     </div>
   </div>
@@ -502,12 +503,17 @@ async function loadReminders() {
       Object.fromEntries(cols.map((c, i) => [c, r?.c?.[i]?.v ?? '']))
     ).filter(r => String(r['טקסט'] || '').trim());
     console.log('תזכורות rows:', rows);
-    reminders = rows.map(r => ({
-      date:   String(r['תאריך'] || '').trim(),
-      text:   String(r['טקסט']  || '').trim(),
-      done:   String(r['בוצע']  || '').trim() === 'כן',
-      school: String(r['בית ספר'] || '').trim(),
-    }));
+    reminders = rows.map(r => {
+      const rawDone = r['בוצע'];
+      console.log('בוצע raw value:', JSON.stringify(rawDone), typeof rawDone);
+      const done = rawDone === true || String(rawDone || '').trim() === 'כן' || String(rawDone || '').trim() === 'TRUE';
+      return {
+        date:   String(r['תאריך'] || '').trim(),
+        text:   String(r['טקסט']  || '').trim(),
+        done,
+        school: String(r['בית ספר'] || '').trim(),
+      };
+    });
   } catch(e) {
     reminders = [];
     console.warn('reminders not loaded', e.message);
@@ -911,6 +917,37 @@ function openCard(encoded){
 
   document.getElementById('clientCard').classList.add('open');
   document.body.style.overflow='hidden';
+
+  // תזכורות לבי"ס זה
+  const schoolReminders = reminders.filter(r => r.school === name);
+  const remEl = document.getElementById('ccReminders');
+  if (remEl) {
+    if (!schoolReminders.length) {
+      remEl.style.display = 'none';
+    } else {
+      remEl.style.display = 'block';
+      const open = schoolReminders.filter(r => !r.done);
+      const done = schoolReminders.filter(r =>  r.done);
+      remEl.innerHTML = `
+        <div class="ctitle" style="margin-bottom:10px">📌 תזכורות</div>
+        ${open.map(r=>`
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:8px;
+            background:var(--surface);border:1px solid #f5c842;margin-bottom:6px">
+            <span>📌</span>
+            <div>
+              <div style="font-size:13px;font-weight:600">${r.text}</div>
+              ${r.date?`<div style="font-size:11px;color:var(--muted);margin-top:2px">📅 ${r.date}</div>`:''}
+            </div>
+          </div>`).join('')}
+        ${done.map(r=>`
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-radius:8px;
+            background:var(--surface2);border:1px solid var(--border);margin-bottom:6px;opacity:.55">
+            <span>✅</span>
+            <div style="font-size:13px;text-decoration:line-through">${r.text}</div>
+          </div>`).join('')}
+      `;
+    }
+  }
 }
 
 function closeCard(){
