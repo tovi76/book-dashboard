@@ -1145,6 +1145,24 @@ function openManualStandalone(){
     </div>`).join('');
   document.getElementById('manualNote').value='';
   document.getElementById('manualGuides').style.display='none';
+
+  // בנה שדות פרטי לקוח
+  const detailsWrap = document.getElementById('manualClientDetails');
+  if(detailsWrap){
+    const fields = [
+      {id:'manualContact', label:'איש קשר / רכזת', icon:'👤'},
+      {id:'manualPhone',   label:'טלפון',           icon:'📞'},
+      {id:'manualTarget',  label:'כתובת יעד',       icon:'📍'},
+      {id:'manualCity',    label:'עיר',             icon:'🏙️'},
+      {id:'manualInvoice', label:'חשבונית על שם',   icon:'🧾'},
+    ];
+    detailsWrap.innerHTML = fields.map(f=>`
+      <div style="background:var(--surface2);border-radius:8px;padding:8px 12px">
+        <div style="font-size:10px;color:var(--dim);margin-bottom:3px">${f.icon} ${f.label}</div>
+        <input id="${f.id}" placeholder="—" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);font-size:13px;font-family:'Heebo',sans-serif;color:var(--text);padding:2px 0;outline:none"/>
+      </div>`).join('');
+  }
+
   document.getElementById('manualOrderModal').style.display='flex';
 }
 
@@ -1853,18 +1871,7 @@ function showUploadStatus(type, msg){
     </div>
 
     <!-- פרטי לקוח — ממולאים אוטומטית אחרי בחירת בי"ס -->
-    <div id="manualClientDetails" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
-      ${[
-        {id:'manualContact', label:'איש קשר / רכזת', icon:'👤'},
-        {id:'manualPhone',   label:'טלפון',           icon:'📞'},
-        {id:'manualTarget',  label:'כתובת יעד',       icon:'📍'},
-        {id:'manualCity',    label:'עיר',             icon:'🏙️'},
-        {id:'manualInvoice', label:'חשבונית על שם',   icon:'🧾'},
-      ].map(f=>`<div style="background:var(--surface2);border-radius:8px;padding:8px 12px">
-        <div style="font-size:10px;color:var(--dim);margin-bottom:3px">${f.icon} ${f.label}</div>
-        <input id="${f.id}" placeholder="—" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);font-size:13px;font-family:'Heebo',sans-serif;color:var(--text);padding:2px 0;outline:none"/>
-      </div>`).join('')}
-    </div>
+    <div id="manualClientDetails" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       <div>
         <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">שנה</div>
