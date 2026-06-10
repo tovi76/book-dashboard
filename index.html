@@ -97,10 +97,10 @@ body.split-active main{max-width:100%;padding:0}
 
 /* ── Alert items ── */
 .alist{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto}
-.ai{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;font-size:12px}
-.ai.warn{background:#fffbec;border:1px solid #f5e0a0}
+.ai{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:8px;font-size:12px;font-weight:500}
+.ai.warn{background:#fcd0ec;border:1px solid #e0509a;color:#7a0050}
 .ai.info{background:var(--accent3);border:1px solid #b7ddc6}
-.ai.blue{background:#eef2ff;border:1px solid #c0cdf7}
+.ai.blue{background:#fff3b0;border:1px solid #e6c200;color:#6b4a00}
 .ai.red{background:#fdf0ef;border:1px solid #f0c0bc}
 .aiico{font-size:14px;flex-shrink:0}
 .ain{font-weight:600;flex:1}
@@ -532,19 +532,19 @@ function renderInventory() {
         const low1  = item.wh1 < INVENTORY_LOW;
         const low2  = item.wh2 > 0 && item.wh2 < INVENTORY_LOW;
         const empty1 = item.wh1 === 0;
-        const bg    = empty1 ? '#ff4444' : low1 ? '#ff9900' : 'var(--surface2)';
-        const border= empty1 ? '#cc0000' : low1 ? '#cc7700' : 'var(--border)';
+        const bg    = empty1 ? '#ff9900' : low1 ? '#ffcc44' : 'var(--surface2)';
+        const border= empty1 ? '#cc6600' : low1 ? '#cc9900' : 'var(--border)';
         return `
           <div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:12px 14px">
             <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text)">${item.book}</div>
             <div style="display:flex;gap:8px;margin-bottom:6px">
               <div style="flex:1;background:var(--surface);border-radius:6px;padding:6px 8px;text-align:center">
                 <div style="font-size:10px;color:var(--muted);margin-bottom:2px">מחסן א</div>
-                <div style="font-size:16px;font-weight:700;color:${empty1?'#fff':low1?'#fff':'var(--text)'}">
+                <div style="font-size:16px;font-weight:700;color:${empty1?'#fff':low1?'#5c3a00':'var(--text)'}">
                   ${item.wh1.toLocaleString()}
                 </div>
-                ${empty1 ? '<div style="font-size:11px;color:#fff;font-weight:800;letter-spacing:.05em">🚨 ריק לגמרי!</div>' :
-                  low1   ? '<div style="font-size:11px;color:#fff;font-weight:800">⚠️ נמוך!</div>' : ''}
+                ${empty1 ? '<div style="font-size:11px;color:#fff;font-weight:800;letter-spacing:.05em">⚠️ נגמר!</div>' :
+                  low1   ? '<div style="font-size:11px;color:#5c3a00;font-weight:800">⚠️ נמוך</div>' : ''}
               </div>
               <div style="flex:1;background:var(--surface);border-radius:6px;padding:6px 8px;text-align:center">
                 <div style="font-size:10px;color:var(--muted);margin-bottom:2px">מחסן ב</div>
@@ -1086,6 +1086,11 @@ function closeManual(){
 }
 
 async function saveManualOrder(){
+  if(!_manualSchool){
+    showToastMsg('❌ יש לבחור בית ספר קודם');
+    return;
+  }
+
   const year = document.getElementById('manualYear').value;
   const date = document.getElementById('manualDate').value;
   const note = document.getElementById('manualNote').value;
@@ -1096,19 +1101,49 @@ async function saveManualOrder(){
     if(el && Number(el.value)>0) books[b] = Number(el.value);
   });
 
+  if(Object.keys(books).length === 0){
+    showToastMsg('❌ יש להזין לפחות ספר אחד');
+    return;
+  }
+
+  // חישוב מלאי — כמו ב-approveOrder
+  const inventoryUpdates = [];
+  for(const book of BOOKS){
+    const ordered = Number(books[book]) || 0;
+    if(ordered === 0) continue;
+    const inv = inventory.find(i => i.book === book);
+    if(!inv) continue;
+    inventoryUpdates.push({
+      book,
+      ordered,
+      wh1_before: inv.wh1,
+      wh1_after:  Math.max(0, inv.wh1 - ordered),
+      wh2:        inv.wh2,
+      low:        Math.max(0, inv.wh1 - ordered) < 500,
+      empty:      Math.max(0, inv.wh1 - ordered) === 0,
+    });
+  }
+
   const payload = {
-    action:  'save_manual',
+    action:  'save',
     school:  _manualSchool,
     year:    year.replace(/"/g,''),
-    date,
-    note,
+    date:    date || new Date().toLocaleDateString('he-IL'),
+    notes:   note,
     contact: document.getElementById('manualContact')?.value || '',
     phone:   document.getElementById('manualPhone')?.value   || '',
     target:  document.getElementById('manualTarget')?.value  || '',
     city:    document.getElementById('manualCity')?.value    || '',
     invoice: document.getElementById('manualInvoice')?.value || '',
+    warehouse: 'א',
+    isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === _manualSchool),
+    inventoryUpdates,
     ...books
   };
+
+  // כפתור שמירה — מצב טעינה
+  const btn = document.querySelector('#manualOrderModal button[onclick="saveManualOrder()"]');
+  if(btn){ btn.textContent='⏳ שומר...'; btn.disabled=true; }
 
   try {
     const res = await fetch(CONFIG.SAVE_WEBHOOK, {
@@ -1116,11 +1151,24 @@ async function saveManualOrder(){
       body: JSON.stringify(payload)
     });
     if(res.ok){
+      // עדכן מלאי מקומי
+      for(const upd of inventoryUpdates){
+        const inv = inventory.find(i=>i.book===upd.book);
+        if(inv) inv.wh1 = upd.wh1_after;
+      }
+      renderInventory();
       closeManual();
-      showToastMsg('✅ ההזמנה נשמרה בהצלחה!');
+      const lowBooks = inventoryUpdates.filter(u=>u.empty||u.low);
+      let msg = `✅ ההזמנה של ${_manualSchool} נשמרה!`;
+      if(lowBooks.length) msg += ` ⚠️ מלאי נמוך: ${lowBooks.map(u=>u.book).join(', ')}`;
+      showToastMsg(msg);
+    } else {
+      showToastMsg('❌ שגיאה בשמירה — נסי שוב');
     }
   } catch(e){
     showToastMsg('❌ שגיאה: '+e.message);
+  } finally {
+    if(btn){ btn.textContent='שמור הזמנה'; btn.disabled=false; }
   }
 }
 
@@ -1181,11 +1229,16 @@ function updateManualBookColor(bookName, val){
   const inp = document.getElementById(elId);
   if(!lbl) return;
   if(nowQty === 0 && prevQty > 0){
-    lbl.innerHTML = `${bookName} <span style="font-size:10px;background:#c8eef7;color:#0a4a62;font-weight:800;padding:1px 6px;border-radius:4px;border:1px solid #2aa0c8">↓ הורד (היה ${prevQty})</span>`;
+    // חזר לריק — תכלת כרמז
+    lbl.innerHTML = `${bookName} <span style="font-size:10px;background:#c8eef7;color:#0a4a62;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #2aa0c8">היה ${prevQty}</span>`;
     if(inp){ inp.style.borderColor='#2aa0c8'; inp.style.background='#eef8fc'; }
   } else if(nowQty > 0 && prevQty === 0){
     lbl.innerHTML = `${bookName} <span style="font-size:10px;background:#fcd0ec;color:#7a0050;font-weight:800;padding:1px 6px;border-radius:4px;border:1px solid #e0509a">✦ חדש</span>`;
     if(inp){ inp.style.borderColor='#e0509a'; inp.style.background='#fef0f8'; }
+  } else if(nowQty === prevQty){
+    // זהה לתשפ"ו — ירוק
+    lbl.innerHTML = `${bookName} <span style="font-size:10px;background:#dff0d8;color:#2d6a2d;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #5cb85c">✓ כמו תשפ"ו</span>`;
+    if(inp){ inp.style.borderColor='#5cb85c'; inp.style.background='#f2fbf2'; }
   } else if(nowQty !== prevQty && nowQty > 0){
     const diff = nowQty - prevQty;
     lbl.innerHTML = `${bookName} <span style="font-size:10px;background:${diff>0?'#dff0d8':'#fff3b0'};color:${diff>0?'#2d6a2d':'#6b4a00'};font-weight:800;padding:1px 6px;border-radius:4px;border:1px solid ${diff>0?'#5cb85c':'#e6c200'}">${diff>0?'+':''}${diff} מתשפ"ו</span>`;
@@ -1266,7 +1319,7 @@ function pickManualSchool(name){
     if(el && prevRow) el.value = String(prevRow[f.key]||'').trim();
   });
 
-  // חיווי צבעים לפי שינוי מתשפ"ו — אל תמלא כמויות אוטומטית
+  // חיווי צבעים מיידי לפי תשפ"ו — לפני שהמשתמש מקליד
   if(prevRow){
     BOOKS.forEach(b=>{
       const elId = 'mb_'+b.replace(/[^א-ת]/g,'_');
@@ -1274,16 +1327,16 @@ function pickManualSchool(name){
       const el = document.getElementById(elId);
       const lbl = document.getElementById(lblId);
       const prevQty = bqty(prevRow, b);
-      if(lbl){
-        if(prevQty > 0){
-          lbl.innerHTML = `${b} <span style="font-size:10px;color:var(--muted)">(תשפ"ו: ${prevQty})</span>`;
-          lbl.style.color = 'var(--muted)';
-        } else {
-          lbl.innerHTML = `${b} <span style="font-size:10px;color:#8b1a5a;font-weight:700">✦ חדש</span>`;
-          lbl.style.color = '#8b1a5a';
-        }
+      if(!lbl) return;
+      if(prevQty > 0){
+        // היה בתשפ"ו — סמן תכלת כרמז שצריך להזמין
+        lbl.innerHTML = `${b} <span style="font-size:10px;background:#c8eef7;color:#0a4a62;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #2aa0c8">היה ${prevQty}</span>`;
+        if(el){ el.style.borderColor='#2aa0c8'; el.style.background='#eef8fc'; el.placeholder=String(prevQty); }
+      } else {
+        // לא היה — ספר חדש אם ימלאו
+        lbl.innerHTML = `${b} <span style="font-size:10px;background:#fcd0ec;color:#7a0050;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #e0509a">✦ חדש</span>`;
+        if(el){ el.style.borderColor='#e0509a'; el.style.background='#fef0f8'; el.placeholder='0'; }
       }
-      if(el) el.value = ''; // תמיד ריק — המשתמש ממלא
     });
   }
   updateManualGuides();
