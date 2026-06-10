@@ -846,7 +846,7 @@ function renderNoPay(rows){
   const np=rows.filter(r=>isSup(r)&&!isPaid(r));
   const el=(id)=>document.getElementById(id);
   const html=np.length?np.slice(0,8).map(r=>aitem('red','💳',r[C.name]||'—',r[C.city]||'')).join(''):aempty('הכל שולם! 🎉');
-  el('nopay').innerHTML=html; el('nopay2').innerHTML=html;
+  el('nopay').innerHTML=html; const np2=document.getElementById('nopay2'); if(np2) np2.innerHTML=html;
 }
 
 // ── Clients table ──
@@ -938,7 +938,8 @@ function renderAlerts(rows,prev){
   document.getElementById('newbk').innerHTML=veteran.length?veteran.map(v=>aitem('warn','📗',v.name,v.book)).join(''):aempty('אין');
 
   const gaps=rows.filter(r=>r[C.gaps]&&String(r[C.gaps]).trim());
-  document.getElementById('gaps2').innerHTML=gaps.length?gaps.map(r=>aitem('warn','⚠️',r[C.name]||'—',String(r[C.gaps]).slice(0,35))).join(''):aempty('אין פערים ✅');
+  const gaps2el = document.getElementById('gaps2');
+  if(gaps2el) gaps2el.innerHTML=gaps.length?gaps.map(r=>aitem('warn','⚠️',r[C.name]||'—',String(r[C.gaps]).slice(0,35))).join(''):aempty('אין פערים ✅');
 }
 
 // ══ CLIENT CARD ══
@@ -1193,11 +1194,13 @@ init();
 // ══ PDF UPLOAD ══
 const UPLOAD_WEBHOOK = CONFIG.UPLOAD_WEBHOOK;
 
-function filterSchoolList(q, currentSchool) {
+function filterSchoolList(q) {
   const dd = document.getElementById('schoolDropdown');
   if (!dd) return;
+  // רק מתשפ"ו (YEARS[1])
+  const prevYear = YEARS[1]?.label;
   const clientList = [...new Set(
-    Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean)
+    (D[prevYear] || []).map(r=>String(r[C.name]||'').trim()).filter(Boolean)
   )].sort();
   const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
   dd.innerHTML = filtered.map((c,i)=>`<div class="sditem" data-name="${c.replace(/"/g,'&quot;')}" onclick="selectSchoolByIndex(${i})" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('');
