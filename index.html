@@ -326,6 +326,16 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 
   <!-- ══ ALERTS ══ -->
   <div class="page" id="pg-alerts">
+    <!-- מלאי -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="ctitle">📦 מלאי ספרים
+        <span style="font-size:11px;color:var(--muted);font-weight:400">— מעודכן מגיליון "מלאי" בשיטס</span>
+        <button onclick="loadInventory()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 10px;font-size:11px;cursor:pointer;color:var(--muted);font-family:'Heebo',sans-serif;margin-right:8px">🔄 רענן</button>
+      </div>
+      <div id="inventory-list" style="margin-top:10px">
+        <div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">טוען מלאי...</div>
+      </div>
+    </div>
     <div class="g2" style="margin-bottom:16px">
       <div class="card">
         <div class="ctitle">🆕 לקוחות חדשים השנה</div>
@@ -487,6 +497,81 @@ async function loadYearsFromStorage() {
   }
 }
 
+// ══ INVENTORY ══
+let inventory = [];
+const INVENTORY_LOW = 500;
+
+async function loadInventory() {
+  const el = document.getElementById('inventory-list');
+  if (el) el.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">טוען...</div>';
+  try {
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent('מלאי')}`;
+    const txt = await (await fetch(url)).text();
+    const m = txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+    if (!m) throw new Error('parse error');
+    const json = JSON.parse(m[1]);
+    const cols = json.table.cols.map(c => c.label || '');
+    inventory = (json.table.rows || [])
+      .map(r => Object.fromEntries(cols.map((c,i) => [c, r?.c?.[i]?.v ?? ''])))
+      .filter(r => String(r['ספר'] || '').trim())
+      .map(r => ({
+        book:  String(r['ספר']     || '').trim(),
+        wh1:   Number(r['מחסן א']  || 0),
+        wh2:   Number(r['מחסן ב']  || 0),
+      }));
+  } catch(e) {
+    inventory = [];
+    console.warn('inventory not loaded', e.message);
+  }
+  renderInventory();
+}
+
+function renderInventory() {
+  const el = document.getElementById('inventory-list');
+  if (!el) return;
+  if (!inventory.length) {
+    el.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">
+      אין נתוני מלאי — צרי גיליון <strong>מלאי</strong> בשיטס עם עמודות: ספר | מחסן א | מחסן ב
+    </div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
+      ${inventory.map(item => {
+        const total = item.wh1 + item.wh2;
+        const low1  = item.wh1 < INVENTORY_LOW;
+        const low2  = item.wh2 > 0 && item.wh2 < INVENTORY_LOW;
+        const empty1 = item.wh1 === 0;
+        const bg    = empty1 ? '#fdf0ef' : low1 ? '#fffbec' : 'var(--surface2)';
+        const border= empty1 ? '#f0c0bc' : low1 ? '#f5e0a0' : 'var(--border)';
+        return `
+          <div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:12px 14px">
+            <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text)">${item.book}</div>
+            <div style="display:flex;gap:8px;margin-bottom:6px">
+              <div style="flex:1;background:var(--surface);border-radius:6px;padding:6px 8px;text-align:center">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:2px">מחסן א</div>
+                <div style="font-size:16px;font-weight:700;color:${empty1?'var(--danger)':low1?'#7a5c00':'var(--text)'}">${item.wh1.toLocaleString()}</div>
+                ${empty1 ? '<div style="font-size:10px;color:var(--danger);font-weight:600">ריק!</div>' :
+                  low1   ? '<div style="font-size:10px;color:#7a5c00;font-weight:600">⚠️ נמוך</div>' : ''}
+              </div>
+              <div style="flex:1;background:var(--surface);border-radius:6px;padding:6px 8px;text-align:center">
+                <div style="font-size:10px;color:var(--muted);margin-bottom:2px">מחסן ב</div>
+                <div style="font-size:16px;font-weight:700;color:${low2?'#7a5c00':'var(--text)'}">${item.wh2.toLocaleString()}</div>
+                ${low2 ? '<div style="font-size:10px;color:#7a5c00;font-weight:600">⚠️ נמוך</div>' : ''}
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);text-align:center">סה"כ: <strong>${total.toLocaleString()}</strong></div>
+          </div>`;
+      }).join('')}
+    </div>
+    ${inventory.some(i => i.wh1 === 0 || i.wh1 < INVENTORY_LOW) ? `
+      <div style="margin-top:12px;background:#fdf0ef;border:1px solid #f0c0bc;border-radius:8px;padding:10px 14px;font-size:13px;color:var(--danger);font-weight:600">
+        ⚠️ ${inventory.filter(i=>i.wh1===0).length > 0 ? `${inventory.filter(i=>i.wh1===0).map(i=>i.book).join(', ')} — מחסן א ריק!` : ''}
+        ${inventory.filter(i=>i.wh1>0 && i.wh1<INVENTORY_LOW).length > 0 ? `${inventory.filter(i=>i.wh1>0&&i.wh1<INVENTORY_LOW).map(i=>i.book).join(', ')} — מתחת ל-${INVENTORY_LOW.toLocaleString()} במחסן א` : ''}
+      </div>` : ''}
+  `;
+}
+
 // ══ REMINDERS ══
 let reminders = [];
 
@@ -591,7 +676,8 @@ async function init(){
   updYbtns();
   render();
   hideLoader();
-  loadReminders(); // async — no await, loads in background
+  loadReminders();
+  loadInventory();
 }
 
 // ── Hebrew year names ──
@@ -1618,6 +1704,7 @@ async function approveOrder(){
     invoice: pendingOrder.invoice || '',
     notes:   pendingOrder.notes   || '',
     gaps: pendingOrder.gaps,
+    warehouse: 'א',
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === pendingOrder.school),
   };
 
@@ -1627,6 +1714,27 @@ async function approveOrder(){
     payload[book] = found ? found.qty : '';
   }
 
+  // Calculate new inventory after this order (subtract from warehouse א)
+  const inventoryUpdates = [];
+  for (const book of BOOKS) {
+    const ordered = Number(payload[book]) || 0;
+    if (ordered === 0) continue;
+    const inv = inventory.find(i => i.book === book);
+    if (!inv) continue;
+    const newWh1 = Math.max(0, inv.wh1 - ordered);
+    const newWh2 = inv.wh2;
+    inventoryUpdates.push({
+      book,
+      ordered,
+      wh1_before: inv.wh1,
+      wh1_after:  newWh1,
+      wh2:        newWh2,
+      low:        newWh1 < 500,
+      empty:      newWh1 === 0,
+    });
+  }
+  payload.inventoryUpdates = inventoryUpdates;
+
   try {
     const res = await fetch(CONFIG.SAVE_WEBHOOK, {
       method: 'POST',
@@ -1635,10 +1743,27 @@ async function approveOrder(){
     });
 
     if (res.ok) {
+      const savedSchool = pendingOrder.school;
+      const savedGaps = gaps;
+      const savedUpdates = inventoryUpdates;
+
+      // Update local inventory immediately (optimistic update)
+      for (const upd of savedUpdates) {
+        const inv = inventory.find(i => i.book === upd.book);
+        if (inv) inv.wh1 = upd.wh1_after;
+      }
+      renderInventory();
+
       closeSplitView();
       const approveBtn2 = document.getElementById('approveBtn');
       if(approveBtn2){approveBtn2.textContent='✅ אשרי ושמרי לתשפ"ז';approveBtn2.disabled=false;}
-      showUploadStatus('success',`🎉 ההזמנה של ${pendingOrder.school} נשמרה לגיליון תשפ"ז!${gaps.length?'\n📊 פערים: '+gaps.map(g=>g.text).join(' | '):''}`);
+
+      // Build success message
+      let successMsg = `🎉 ההזמנה של ${savedSchool} נשמרה לגיליון תשפ"ז!`;
+      if (savedGaps.length) successMsg += `\n📊 פערים: ${savedGaps.map(g=>g.text).join(' | ')}`;
+      const lowBooks = savedUpdates.filter(u => u.empty || u.low);
+      if (lowBooks.length) successMsg += `\n⚠️ שים לב למלאי: ${lowBooks.map(u=>u.book+' נשאר '+u.wh1_after).join(', ')}`;
+      showUploadStatus('success', successMsg);
       pendingOrder = null;
       document.getElementById('pdfInput').value='';
       // Reload data after 2 seconds (without rebuilding year buttons)
