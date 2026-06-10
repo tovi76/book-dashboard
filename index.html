@@ -346,16 +346,6 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         <div class="alist" id="newbk"></div>
       </div>
     </div>
-    <div class="g2">
-      <div class="card">
-        <div class="ctitle">⚠️ פערים פתוחים</div>
-        <div class="alist" id="gaps2"></div>
-      </div>
-      <div class="card">
-        <div class="ctitle">💳 סופקו — לא שילמו</div>
-        <div class="alist" id="nopay2"></div>
-      </div>
-    </div>
   </div>
   <!-- ══ UPLOAD ══ -->
   <div class="page on" id="pg-upload">
@@ -745,7 +735,7 @@ function updYbtns(){document.querySelectorAll('.ybtn').forEach(b=>b.classList.to
 // ══ HELPERS ══
 function isSup(r){const v=String(r[C.supply]||'').toLowerCase().trim();return v==='כן'||v.includes('סופק')||v==='true'||v==='1';}
 function isPaid(r){const v=String(r[C.pay]||'').toLowerCase().trim();return v==='שולם'||v==='כן'||v==='true';}
-function bqty(r,b){return Number(r[b])||0;}
+function bqty(r,b){return Number(r[b]) || Number(r[b.replace(/[''`׳]/g,'')]) || Number(r[b+"'"]) || 0;}
 function tbooks(rows){return rows.reduce((s,r)=>s+BOOKS.reduce((ss,b)=>ss+bqty(r,b),0),0);}
 function prevY(){const i=YEARS.findIndex(y=>y.label===activeY);return i<YEARS.length-1?YEARS[i+1].label:null;}
 function aitem(cls,ico,name,sub){return`<div class="ai ${cls}"><span class="aiico">${ico}</span><span class="ain">${name}</span><span class="aic">${sub||''}</span></div>`;}
