@@ -532,22 +532,24 @@ function renderInventory() {
         const low1  = item.wh1 < INVENTORY_LOW;
         const low2  = item.wh2 > 0 && item.wh2 < INVENTORY_LOW;
         const empty1 = item.wh1 === 0;
-        const bg    = empty1 ? '#fdf0ef' : low1 ? '#fffbec' : 'var(--surface2)';
-        const border= empty1 ? '#f0c0bc' : low1 ? '#f5e0a0' : 'var(--border)';
+        const bg    = empty1 ? '#ff4444' : low1 ? '#ff9900' : 'var(--surface2)';
+        const border= empty1 ? '#cc0000' : low1 ? '#cc7700' : 'var(--border)';
         return `
           <div style="background:${bg};border:1px solid ${border};border-radius:10px;padding:12px 14px">
             <div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--text)">${item.book}</div>
             <div style="display:flex;gap:8px;margin-bottom:6px">
               <div style="flex:1;background:var(--surface);border-radius:6px;padding:6px 8px;text-align:center">
                 <div style="font-size:10px;color:var(--muted);margin-bottom:2px">מחסן א</div>
-                <div style="font-size:16px;font-weight:700;color:${empty1?'var(--danger)':low1?'#7a5c00':'var(--text)'}">${item.wh1.toLocaleString()}</div>
-                ${empty1 ? '<div style="font-size:10px;color:var(--danger);font-weight:600">ריק!</div>' :
-                  low1   ? '<div style="font-size:10px;color:#7a5c00;font-weight:600">⚠️ נמוך</div>' : ''}
+                <div style="font-size:16px;font-weight:700;color:${empty1?'#fff':low1?'#fff':'var(--text)'}">
+                  ${item.wh1.toLocaleString()}
+                </div>
+                ${empty1 ? '<div style="font-size:11px;color:#fff;font-weight:800;letter-spacing:.05em">🚨 ריק לגמרי!</div>' :
+                  low1   ? '<div style="font-size:11px;color:#fff;font-weight:800">⚠️ נמוך!</div>' : ''}
               </div>
               <div style="flex:1;background:var(--surface);border-radius:6px;padding:6px 8px;text-align:center">
                 <div style="font-size:10px;color:var(--muted);margin-bottom:2px">מחסן ב</div>
-                <div style="font-size:16px;font-weight:700;color:${low2?'#7a5c00':'var(--text)'}">${item.wh2.toLocaleString()}</div>
-                ${low2 ? '<div style="font-size:10px;color:#7a5c00;font-weight:600">⚠️ נמוך</div>' : ''}
+                <div style="font-size:16px;font-weight:700;color:${low2?'#cc7700':'var(--text)'}">${item.wh2.toLocaleString()}</div>
+                ${low2 ? '<div style="font-size:11px;color:#cc7700;font-weight:800">⚠️ נמוך!</div>' : ''}
               </div>
             </div>
             <div style="font-size:11px;color:var(--muted);text-align:center">סה"כ: <strong>${total.toLocaleString()}</strong></div>
@@ -1138,9 +1140,9 @@ function openManualStandalone(){
   document.getElementById('manualDate').value = new Date().toISOString().split('T')[0];
   document.getElementById('manualBooks').innerHTML = BOOKS.map(b=>`
     <div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:3px">${b}</div>
+      <div class="mb-label" id="mbl_${b.replace(/[^א-ת]/g,'_')}" style="font-size:11px;color:var(--muted);margin-bottom:3px">${b}</div>
       <input type="number" min="0" id="mb_${b.replace(/[^א-ת]/g,'_')}"
-        placeholder="0" oninput="updateManualGuides()"
+        placeholder="0" oninput="updateManualGuides();updateManualBookColor('${b.replace(/'/g,"\\'")}',this.value)"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;color:var(--accent);outline:none"/>
     </div>`).join('');
   document.getElementById('manualNote').value='';
@@ -1164,6 +1166,64 @@ function openManualStandalone(){
   }
 
   document.getElementById('manualOrderModal').style.display='flex';
+  setTimeout(()=>addKeyboardNav('manualSchoolInput','manualSchoolDD', pickManualSchool), 50);
+}
+
+function updateManualBookColor(bookName, val){
+  const prevYear = YEARS[1]?.label;
+  const prevRow = _manualSchool ? (D[prevYear]||[]).find(r=>String(r[C.name]||'').trim()===_manualSchool) : null;
+  if(!prevRow) return;
+  const prevQty = bqty(prevRow, bookName);
+  const nowQty = Number(val) || 0;
+  const elId = 'mb_'+bookName.replace(/[^א-ת]/g,'_');
+  const lblId = 'mbl_'+bookName.replace(/[^א-ת]/g,'_');
+  const lbl = document.getElementById(lblId);
+  const inp = document.getElementById(elId);
+  if(!lbl) return;
+  if(nowQty === 0 && prevQty > 0){
+    lbl.innerHTML = `${bookName} <span style="font-size:10px;background:#c8eef7;color:#0a4a62;font-weight:800;padding:1px 6px;border-radius:4px;border:1px solid #2aa0c8">↓ הורד (היה ${prevQty})</span>`;
+    if(inp){ inp.style.borderColor='#2aa0c8'; inp.style.background='#eef8fc'; }
+  } else if(nowQty > 0 && prevQty === 0){
+    lbl.innerHTML = `${bookName} <span style="font-size:10px;background:#fcd0ec;color:#7a0050;font-weight:800;padding:1px 6px;border-radius:4px;border:1px solid #e0509a">✦ חדש</span>`;
+    if(inp){ inp.style.borderColor='#e0509a'; inp.style.background='#fef0f8'; }
+  } else if(nowQty !== prevQty && nowQty > 0){
+    const diff = nowQty - prevQty;
+    lbl.innerHTML = `${bookName} <span style="font-size:10px;background:${diff>0?'#dff0d8':'#fff3b0'};color:${diff>0?'#2d6a2d':'#6b4a00'};font-weight:800;padding:1px 6px;border-radius:4px;border:1px solid ${diff>0?'#5cb85c':'#e6c200'}">${diff>0?'+':''}${diff} מתשפ"ו</span>`;
+    if(inp){ inp.style.borderColor = diff>0 ? '#5cb85c' : '#e6c200'; inp.style.background = diff>0 ? '#f2fbf2' : '#fffde6'; }
+  } else {
+    lbl.innerHTML = `${bookName} <span style="font-size:10px;color:var(--muted)">(תשפ"ו: ${prevQty})</span>`;
+    if(inp){ inp.style.borderColor='var(--border)'; inp.style.background='var(--surface2)'; }
+  }
+}
+
+// ניווט מקלדת בדרופדאונים
+function addKeyboardNav(inputId, ddId, pickFn){
+  const input = document.getElementById(inputId);
+  const dd = document.getElementById(ddId);
+  if(!input||!dd) return;
+  let idx = -1;
+  input.addEventListener('keydown', e=>{
+    const items = dd.querySelectorAll('div');
+    if(!items.length || dd.style.display==='none') return;
+    if(e.key==='ArrowDown'){
+      e.preventDefault();
+      idx = Math.min(idx+1, items.length-1);
+    } else if(e.key==='ArrowUp'){
+      e.preventDefault();
+      idx = Math.max(idx-1, 0);
+    } else if(e.key==='Enter' && idx>=0){
+      e.preventDefault();
+      items[idx].click();
+      idx=-1; return;
+    } else if(e.key==='Escape'){
+      dd.style.display='none'; idx=-1; return;
+    } else { idx=-1; }
+    items.forEach((it,i)=>{
+      it.style.background = i===idx ? 'var(--accent3)' : '';
+      it.style.fontWeight  = i===idx ? '700' : '';
+    });
+    if(idx>=0) items[idx].scrollIntoView({block:'nearest'});
+  });
 }
 
 function filterManualSchool(q){
@@ -1206,16 +1266,27 @@ function pickManualSchool(name){
     if(el && prevRow) el.value = String(prevRow[f.key]||'').trim();
   });
 
-  // כמויות מתשפ"ו
+  // חיווי צבעים לפי שינוי מתשפ"ו — אל תמלא כמויות אוטומטית
   if(prevRow){
     BOOKS.forEach(b=>{
       const elId = 'mb_'+b.replace(/[^א-ת]/g,'_');
+      const lblId = 'mbl_'+b.replace(/[^א-ת]/g,'_');
       const el = document.getElementById(elId);
-      const qty = bqty(prevRow, b);
-      if(el) el.value = qty > 0 ? qty : '';
+      const lbl = document.getElementById(lblId);
+      const prevQty = bqty(prevRow, b);
+      if(lbl){
+        if(prevQty > 0){
+          lbl.innerHTML = `${b} <span style="font-size:10px;color:var(--muted)">(תשפ"ו: ${prevQty})</span>`;
+          lbl.style.color = 'var(--muted)';
+        } else {
+          lbl.innerHTML = `${b} <span style="font-size:10px;color:#8b1a5a;font-weight:700">✦ חדש</span>`;
+          lbl.style.color = '#8b1a5a';
+        }
+      }
+      if(el) el.value = ''; // תמיד ריק — המשתמש ממלא
     });
-    updateManualGuides();
   }
+  updateManualGuides();
 }
 
 function showToastMsg(msg){
@@ -1650,6 +1721,11 @@ function showPreview(data){
   if (schoolSearchEl) {
     schoolSearchEl.addEventListener('input', function(){ filterSchoolList(this.value); });
     schoolSearchEl.addEventListener('focus', function(){ filterSchoolList(this.value); });
+    addKeyboardNav('schoolSearch','schoolDropdown', name=>{
+      const el = document.getElementById('schoolEdit');
+      if(el){ el.value=name; if(pendingOrder) pendingOrder.school=name; }
+      document.getElementById('schoolDropdown').style.display='none';
+    });
   }
 }
 
@@ -1702,10 +1778,10 @@ function calcGaps(books, schoolName) {
 
 function gapColor(type) {
   switch(type) {
-    case 'new_client':   return { bg:'#fffbec', border:'#f5e0a0', color:'#7a5c00' }; // צהוב
-    case 'new_book':     return { bg:'#fce8f3', border:'#f0b3d8', color:'#8b1a5a' }; // ורוד
-    case 'removed_book': return { bg:'#e8f7fa', border:'#a8dce8', color:'#1a5f72' }; // תכלת
-    default:             return { bg:'var(--surface2)', border:'var(--border)', color:'var(--text)' };
+    case 'new_client':   return { bg:'#fff3b0', border:'#e6c200', color:'#6b4a00' };  // צהוב חזק
+    case 'new_book':     return { bg:'#fcd0ec', border:'#e0509a', color:'#7a0050' };  // ורוד חזק
+    case 'removed_book': return { bg:'#c8eef7', border:'#2aa0c8', color:'#0a4a62' };  // תכלת חזק
+    default:             return { bg:'#dff0d8', border:'#5cb85c', color:'#2d6a2d' };  // ירוק לשינוי כמות
   }
 }
 
