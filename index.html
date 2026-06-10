@@ -1171,7 +1171,10 @@ function filterManualSchool(q){
   const prevYear = YEARS[1]?.label;
   const clientList = [...new Set((D[prevYear]||[]).map(r=>String(r[C.name]||'').trim()).filter(Boolean))].sort();
   const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
-  dd.innerHTML = filtered.map(c=>`<div onclick="pickManualSchool('${c.replace(/'/g,"\'")}')" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('');
+  dd.innerHTML = filtered.map((c,i)=>{
+    const safe = c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div onclick="pickManualSchool('${safe}')" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`;
+  }).join('');
   dd.style.display = filtered.length ? 'block' : 'none';
 }
 
@@ -1259,7 +1262,10 @@ function filterSchoolList(q) {
   )].sort();
   console.log('clientList:', clientList);
   const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
-  dd.innerHTML = filtered.map((c,i)=>`<div class="sditem" data-name="${c.replace(/"/g,'&quot;')}" onclick="selectSchoolByIndex(${i})" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`).join('');
+  dd.innerHTML = filtered.map((c,i)=>{
+    const safe = c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return `<div class="sditem" data-name="${c.replace(/"/g,'&quot;')}" onclick="selectSchoolByIndex(${i})" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`;
+  }).join('');
   dd.style.display = filtered.length ? 'block' : 'none';
 }
 
