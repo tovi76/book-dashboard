@@ -1061,7 +1061,6 @@ function openAddOrder(schoolName){
   // Set year to current
   document.getElementById('manualYear').value = YEARS[0].label;
   document.getElementById('manualNote').value = '';
-  document.getElementById('manualGuides').style.display='none';
   document.getElementById('manualOrderModal').style.display='flex';
 }
 
@@ -1205,7 +1204,6 @@ function openManualStandalone(){
       {id:'manualPhone',   label:'טלפון',           icon:'📞'},
       {id:'manualTarget',  label:'כתובת יעד',       icon:'📍'},
       {id:'manualCity',    label:'עיר',             icon:'🏙️'},
-      {id:'manualInvoice', label:'חשבונית על שם',   icon:'🧾'},
     ];
     detailsWrap.innerHTML = fields.map(f=>`
       <div style="background:var(--surface2);border-radius:8px;padding:8px 12px">
@@ -1313,7 +1311,6 @@ function pickManualSchool(name){
     {id:'manualPhone',   key: C.phone},
     {id:'manualTarget',  key: C.target},
     {id:'manualCity',    key: C.city},
-    {id:'manualInvoice', key: C.invoice},
   ];
   detailsFields.forEach(f=>{
     const el = document.getElementById(f.id);
@@ -2029,9 +2026,6 @@ function showUploadStatus(type, msg){
     </div>
     <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:8px;text-transform:uppercase">כמויות ספרים</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px" id="manualBooks"></div>
-    <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">הערה</div>
-    <textarea id="manualNote" placeholder="הערה אופציונלית..." rows="2"
-      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;margin-bottom:16px"></textarea>
     <!-- מדריך וחוברת למורה -->
     <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:var(--surface2)">
       <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:12px;text-transform:uppercase">📚 מדריך וחוברת למורה</div>
@@ -2050,6 +2044,9 @@ function showUploadStatus(type, msg){
         </div>
       </div>
     </div>
+    <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">הערה</div>
+    <textarea id="manualNote" placeholder="הערה אופציונלית..." rows="2"
+      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;margin-bottom:16px"></textarea>
     <div style="display:flex;gap:10px">
       <button onclick="saveManualOrder()" style="flex:1;padding:11px;background:var(--accent);color:#fff;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;border:none;border-radius:9px;cursor:pointer">שמור הזמנה</button>
       <button onclick="closeManual()" style="padding:11px 18px;background:none;border:1px solid var(--border);border-radius:9px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">ביטול</button>
