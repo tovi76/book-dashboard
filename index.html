@@ -449,9 +449,9 @@ const C = {
 let D={}, H={}, activeY=YEARS[1].label, scI=null, ccI=null, _trows=[];
 
 // ══ FETCH ══
-async function fetchTab(tab){
+async function fetchTab(tab, signal){
   const url=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}`;
-  const txt=await(await fetch(url)).text();
+  const txt=await(await fetch(url, signal ? {signal} : {})).text();
   const m=txt.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
   if(!m)throw new Error('parse error');
   const json=JSON.parse(m[1]);
@@ -468,10 +468,13 @@ async function fetchTab(tab){
 // ══ INIT ══
 async function loadYearsFromStorage() {
   try {
+    const controller = new AbortController();
+    const tid = setTimeout(()=>controller.abort(), 3000);
     const result = await Promise.race([
-      fetchTab('הגדרות'),
-      new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 5000))
+      fetchTab('הגדרות', controller.signal),
+      new Promise((_,rej) => setTimeout(()=>rej(new Error('timeout')), 3000))
     ]);
+    clearTimeout(tid);
     const rows = result.rows || [];
     if (rows.length) {
       const loaded = rows
