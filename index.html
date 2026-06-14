@@ -412,7 +412,6 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         <div class="cc-sub" id="ccSub"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button onclick="openAddOrder()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-family:'Heebo',sans-serif;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer">✏️ הוסף הזמנה ידנית</button>
         <button class="cc-close" onclick="closeCard()">✕</button>
       </div>
     </div>
@@ -446,7 +445,7 @@ const C = {
 };
 
 // ══ STATE ══
-let D={}, H={}, activeY=YEARS[1].label, scI=null, ccI=null, _trows=[];
+let D={}, H={}, activeY=YEARS[0].label, scI=null, ccI=null, _trows=[];
 
 // ══ FETCH ══
 async function fetchTab(tab){
@@ -963,15 +962,27 @@ function openCard(encoded){
   document.getElementById('ccSub').textContent=`${latest[C.city]||''} ${latest[C.school]?'| '+latest[C.school]:''}`;
 
   // Meta
+  const supStatus = isSup(latest);
+  const paidStatus = isPaid(latest);
   const meta=[
     {l:'עיר',v:latest[C.city]},
     {l:'כתובת',v:latest[C.target]},
     {l:'איש קשר',v:latest[C.contact]},
     {l:'טלפון',v:latest[C.phone]},
-    {l:'חשבונית על שם',v:latest[C.invoice]},
     {l:'שליח',v:latest[C.ship]},
+    {l:'מדריך למורה',v:latest[C.guide]},
+    {l:'חוברת למורה',v:latest[C.booklet]},
   ].filter(m=>m.v);
-  document.getElementById('ccMeta').innerHTML=meta.map(m=>`<div class="cc-mitem"><div class="cc-mlbl">${m.l}</div><div class="cc-mval">${m.v}</div></div>`).join('');
+  document.getElementById('ccMeta').innerHTML=
+    `<div class="cc-mitem" style="background:${supStatus?'#e6f4ec':'#fffbec'};border:1px solid ${supStatus?'#b7ddc6':'#f5e0a0'}">
+      <div class="cc-mlbl">אספקה</div>
+      <div class="cc-mval" style="color:${supStatus?'#1a6b35':'#7a5c00'}">${supStatus?'✅ סופק':'⏳ לא סופק'}</div>
+    </div>
+    <div class="cc-mitem" style="background:${paidStatus?'#f0e6ff':'#fffbec'};border:1px solid ${paidStatus?'#d4b3f5':'#f5e0a0'}">
+      <div class="cc-mlbl">תשלום</div>
+      <div class="cc-mval" style="color:${paidStatus?'#5a2d82':'#7a5c00'}">${paidStatus?'💜 שולם':'💳 לא שולם'}</div>
+    </div>`+
+    meta.map(m=>`<div class="cc-mitem"><div class="cc-mlbl">${m.l}</div><div class="cc-mval">${m.v}</div></div>`).join('');
 
   // Years history
   const currentYear = YEARS[0].label; // תשפ"ז
@@ -1066,7 +1077,46 @@ function openAddOrder(schoolName){
 }
 
 function updateManualGuides(){
-  // (ביטול חישוב אוטומטי — מדריך וחוברת למורה מוזנים ידנית בסוף הטופס)
+  // עדכן שורות מדריך/חוברת למורה לפי הספרים שהוזמנו
+  const prevYear = YEARS[1]?.label;
+  const prevRow = _manualSchool ? (D[prevYear]||[]).find(r=>String(r[C.name]||'').trim()===_manualSchool) : null;
+  const orderedBooks = BOOKS.filter(b=>{
+    const el = document.getElementById('mb_'+b.replace(/[^a-zA-Zא-ת]/g,'_'));
+    return el && Number(el.value) > 0;
+  });
+  ['Guide','Booklet'].forEach(type=>{
+    const wrap = document.getElementById('manual'+type+'Rows');
+    if(!wrap) return;
+    const prevKey = type==='Guide' ? C.guide : C.booklet;
+    if(!orderedBooks.length){
+      wrap.innerHTML = `<div style="font-size:11px;color:var(--dim)">הזן כמויות ספרים תחילה</div>`;
+      return;
+    }
+    wrap.innerHTML = orderedBooks.map(b=>{
+      const prevVal = prevRow ? String(prevRow[prevKey]||'') : '';
+      // Try to extract prev qty for this book from combined string e.g. 'מתחברת למילים - 2'
+      const prevMatch = prevVal.match(new RegExp(b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*-\\s*(\\d+)'));
+      const prevQty = prevMatch ? prevMatch[1] : '';
+      const safeId = 'mg_'+type+'_'+b.replace(/[^a-zA-Zא-ת]/g,'_');
+      return `<div style="margin-bottom:8px">
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">${b}</div>
+        ${prevQty?`<div style="font-size:10px;color:#0a4a62;background:#eef8fc;border:1px solid #2aa0c8;border-radius:4px;padding:2px 6px;margin-bottom:3px">תשפ״ו: ${prevQty}</div>`:''}
+        <input type="number" min="0" id="${safeId}" placeholder="כמות..."
+          style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:var(--accent);outline:none"/>
+      </div>`;
+    }).join('');
+  });
+}
+
+function buildGuideBookletString(type){
+  // בנה סטרינג משולב: 'מתחברת למילים - 2, ברוכה הבאה ה - 3'
+  const parts = [];
+  BOOKS.forEach(b=>{
+    const safeId = 'mg_'+type+'_'+b.replace(/[^a-zA-Zא-ת]/g,'_');
+    const el = document.getElementById(safeId);
+    if(el && Number(el.value) > 0) parts.push(b+' - '+el.value);
+  });
+  return parts.join(', ');
 }
 
 function closeManual(){
@@ -1131,8 +1181,8 @@ async function saveManualOrder(){
     invoice: document.getElementById('manualInvoice')?.value || '',
     gaps: gapsText,
     gapType: gapType,
-    guide:   document.getElementById('manualGuideInput')?.value   || '',
-    booklet: document.getElementById('manualBookletInput')?.value || '',
+    guide:   buildGuideBookletString('Guide'),
+    booklet: buildGuideBookletString('Booklet'),
     warehouse: 'א',
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === _manualSchool),
     inventoryUpdates,
@@ -1192,10 +1242,8 @@ function openManualStandalone(){
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;color:var(--accent);outline:none"/>
     </div>`).join('');
   document.getElementById('manualNote').value='';
-  const _gi=document.getElementById('manualGuideInput'); if(_gi) _gi.value='';
-  const _bi=document.getElementById('manualBookletInput'); if(_bi) _bi.value='';
-  const _gr=document.getElementById('manualGuidePrevRef'); if(_gr) _gr.textContent='';
-  const _br=document.getElementById('manualBookletPrevRef'); if(_br) _br.textContent='';
+  const _gr=document.getElementById('manualGuideRows'); if(_gr) _gr.innerHTML='';
+  const _br=document.getElementById('manualBookletRows'); if(_br) _br.innerHTML='';
 
   // בנה שדות פרטי לקוח
   const detailsWrap = document.getElementById('manualClientDetails');
@@ -1338,17 +1386,6 @@ function pickManualSchool(name){
       // אחרת (ספר חדש) — לא נוגעים בעיצוב כלל בשלב הזה
     });
   }
-  // הצג מדריך/חוברת מתשפ"ו
-  const guideRef = document.getElementById('manualGuidePrevRef');
-  const bookletRef = document.getElementById('manualBookletPrevRef');
-  if(prevRow && guideRef){
-    const gv = String(prevRow[C.guide]||'').trim();
-    guideRef.textContent = gv ? 'תשפ״ו: ' + gv : 'תשפ״ו: —';
-  } else if(guideRef){ guideRef.textContent = ''; }
-  if(prevRow && bookletRef){
-    const bv = String(prevRow[C.booklet]||'').trim();
-    bookletRef.textContent = bv ? 'תשפ״ו: ' + bv : 'תשפ״ו: —';
-  } else if(bookletRef){ bookletRef.textContent = ''; }
   updateManualGuides();
 }
 
@@ -1705,6 +1742,7 @@ function showPreview(data){
     { key:'phone',   label:'טלפון',           icon:'📞' },
     { key:'target',  label:'כתובת יעד',       icon:'📍' },
     { key:'city',    label:'עיר',             icon:'🏙️' },
+    { key:'invoice', label:'חשבונית על שם',   icon:'🧾' },
   ];
 
   const detailsHtml = `
@@ -1766,27 +1804,6 @@ function showPreview(data){
         }).join('')}
       </div>
     </div>` : ''}
-
-    <!-- מדריך וחוברת למורה -->
-    <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-top:14px;margin-bottom:0;background:var(--surface2)">
-      <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:12px;text-transform:uppercase">📚 מדריך וחוברת למורה</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div>
-          <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:3px">מדריך למורה</div>
-          <div style="font-size:11px;color:#0a4a62;background:#eef8fc;border:1px solid #2aa0c8;border-radius:5px;padding:3px 8px;margin-bottom:5px;min-height:20px">${existingRow&&existingRow[C.guide]?'תשפ״ו: '+existingRow[C.guide]:'תשפ״ו: —'}</div>
-          <input id="detail_guide" value="${data.guide||''}" placeholder="הזיני ערך לתשפ״ז..."
-            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"
-            oninput="if(pendingOrder)pendingOrder.guide=this.value"/>
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:3px">חוברת למורה</div>
-          <div style="font-size:11px;color:#0a4a62;background:#eef8fc;border:1px solid #2aa0c8;border-radius:5px;padding:3px 8px;margin-bottom:5px;min-height:20px">${existingRow&&existingRow[C.booklet]?'תשפ״ו: '+existingRow[C.booklet]:'תשפ״ו: —'}</div>
-          <input id="detail_booklet" value="${data.booklet||''}" placeholder="הזיני ערך לתשפ״ז..."
-            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"
-            oninput="if(pendingOrder)pendingOrder.booklet=this.value"/>
-        </div>
-      </div>
-    </div>
 
     <!-- Notes -->
     <div style="margin-top:14px">
@@ -1885,7 +1902,7 @@ async function approveOrder(){
   if (schoolEdit) pendingOrder.school = schoolEdit.value.trim() || pendingOrder.school;
 
   // Update detail fields from form
-  ['contact','phone','target','city','guide','booklet'].forEach(k => {
+  ['contact','phone','target','city','invoice'].forEach(k => {
     const el = document.getElementById('detail_'+k);
     if (el) pendingOrder[k] = el.value.trim();
   });
@@ -1915,9 +1932,8 @@ async function approveOrder(){
     phone:   pendingOrder.phone   || '',
     target:  pendingOrder.target  || '',
     city:    pendingOrder.city    || '',
+    invoice: pendingOrder.invoice || '',
     notes:   pendingOrder.notes   || '',
-    guide:   pendingOrder.guide   || '',
-    booklet: pendingOrder.booklet || '',
     gaps: pendingOrder.gaps,
     warehouse: 'א',
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === pendingOrder.school),
@@ -2056,18 +2072,14 @@ function showUploadStatus(type, msg){
     <!-- מדריך וחוברת למורה -->
     <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:var(--surface2)">
       <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:12px;text-transform:uppercase">📚 מדריך וחוברת למורה</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
-          <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:3px">מדריך למורה</div>
-          <div id="manualGuidePrevRef" style="font-size:11px;color:#0a4a62;background:#eef8fc;border:1px solid #2aa0c8;border-radius:5px;padding:3px 8px;margin-bottom:5px;min-height:20px"></div>
-          <input id="manualGuideInput" placeholder="הזיני ערך לתשפ״ז..."
-            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
+          <div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:8px">מדריך למורה</div>
+          <div id="manualGuideRows"></div>
         </div>
         <div>
-          <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:3px">חוברת למורה</div>
-          <div id="manualBookletPrevRef" style="font-size:11px;color:#0a4a62;background:#eef8fc;border:1px solid #2aa0c8;border-radius:5px;padding:3px 8px;margin-bottom:5px;min-height:20px"></div>
-          <input id="manualBookletInput" placeholder="הזיני ערך לתשפ״ז..."
-            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
+          <div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:8px">חוברת למורה</div>
+          <div id="manualBookletRows"></div>
         </div>
       </div>
     </div>
