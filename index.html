@@ -1125,6 +1125,11 @@ async function saveManualOrder(){
     });
   }
 
+  const booksArr = BOOKS.map(b=>({name:b, qty:Number(books[b])||0}));
+  const gaps = calcGaps(booksArr, _manualSchool);
+  const gapsText = gaps.map(g=>g.text).join(' | ');
+  const gapType = gaps[0]?.type || '';
+
   const payload = {
     action:  'save',
     school:  _manualSchool,
@@ -1136,6 +1141,8 @@ async function saveManualOrder(){
     target:  document.getElementById('manualTarget')?.value  || '',
     city:    document.getElementById('manualCity')?.value    || '',
     invoice: document.getElementById('manualInvoice')?.value || '',
+    gaps: gapsText,
+    gapType: gapType,
     warehouse: 'א',
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === _manualSchool),
     inventoryUpdates,
@@ -1333,7 +1340,7 @@ function pickManualSchool(name){
       if(prevQty > 0){
         // היה בתשפ"ו — סמן תכלת כרמז שצריך להזמין
         lbl.innerHTML = `${b} <span style="font-size:10px;background:#c8eef7;color:#0a4a62;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #2aa0c8">היה ${prevQty}</span>`;
-        if(el){ el.style.borderColor='#2aa0c8'; el.style.background='#eef8fc'; el.placeholder=String(prevQty); }
+        if(el){ el.style.borderColor='#2aa0c8'; el.style.background='#eef8fc'; el.placeholder='0'; }
       }
       // אחרת (ספר חדש) — לא נוגעים בעיצוב כלל בשלב הזה
     });
