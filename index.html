@@ -1066,19 +1066,8 @@ function openAddOrder(schoolName){
 }
 
 function updateManualGuides(){
-  let total = 0;
-  BOOKS.forEach(b=>{
-    const el = document.getElementById('mb_'+b.replace(/[^a-zA-Zא-ת]/g,'_'));
-    if(el) total += Number(el.value)||0;
-  });
-  const guides = Math.ceil(total/40);
-  const el = document.getElementById('manualGuides');
-  if(total > 0){
-    el.style.display='block';
-    el.textContent = `📚 סה"כ ${total} ספרים → ${guides} מדריך${guides>1?'ים':''} למורה`;
-  } else {
-    el.style.display='none';
-  }
+  // (ביטול חישוב אוטומטי — מדריך וחוברת למורה מוזנים ידנית בסוף הטופס)
+}
 }
 
 function closeManual(){
@@ -1143,6 +1132,8 @@ async function saveManualOrder(){
     invoice: document.getElementById('manualInvoice')?.value || '',
     gaps: gapsText,
     gapType: gapType,
+    guide:   document.getElementById('manualGuideInput')?.value   || '',
+    booklet: document.getElementById('manualBookletInput')?.value || '',
     warehouse: 'א',
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === _manualSchool),
     inventoryUpdates,
@@ -1202,7 +1193,10 @@ function openManualStandalone(){
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;color:var(--accent);outline:none"/>
     </div>`).join('');
   document.getElementById('manualNote').value='';
-  document.getElementById('manualGuides').style.display='none';
+  const _gi=document.getElementById('manualGuideInput'); if(_gi) _gi.value='';
+  const _bi=document.getElementById('manualBookletInput'); if(_bi) _bi.value='';
+  const _gr=document.getElementById('manualGuidePrevRef'); if(_gr) _gr.textContent='';
+  const _br=document.getElementById('manualBookletPrevRef'); if(_br) _br.textContent='';
 
   // בנה שדות פרטי לקוח
   const detailsWrap = document.getElementById('manualClientDetails');
@@ -1345,6 +1339,17 @@ function pickManualSchool(name){
       // אחרת (ספר חדש) — לא נוגעים בעיצוב כלל בשלב הזה
     });
   }
+  // הצג מדריך/חוברת מתשפ"ו
+  const guideRef = document.getElementById('manualGuidePrevRef');
+  const bookletRef = document.getElementById('manualBookletPrevRef');
+  if(prevRow && guideRef){
+    const gv = String(prevRow[C.guide]||'').trim();
+    guideRef.textContent = gv ? 'תשפ״ו: ' + gv : 'תשפ״ו: —';
+  } else if(guideRef){ guideRef.textContent = ''; }
+  if(prevRow && bookletRef){
+    const bv = String(prevRow[C.booklet]||'').trim();
+    bookletRef.textContent = bv ? 'תשפ״ו: ' + bv : 'תשפ״ו: —';
+  } else if(bookletRef){ bookletRef.textContent = ''; }
   updateManualGuides();
 }
 
@@ -2028,7 +2033,24 @@ function showUploadStatus(type, msg){
     <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">הערה</div>
     <textarea id="manualNote" placeholder="הערה אופציונלית..." rows="2"
       style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;margin-bottom:16px"></textarea>
-    <div id="manualGuides" style="background:var(--gold2);border:1px solid var(--gold);border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;color:#7a5c00;margin-bottom:16px;display:none"></div>
+    <!-- מדריך וחוברת למורה -->
+    <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:var(--surface2)">
+      <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:12px;text-transform:uppercase">📚 מדריך וחוברת למורה</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:3px">מדריך למורה</div>
+          <div id="manualGuidePrevRef" style="font-size:11px;color:#0a4a62;background:#eef8fc;border:1px solid #2aa0c8;border-radius:5px;padding:3px 8px;margin-bottom:5px;min-height:20px"></div>
+          <input id="manualGuideInput" placeholder="הזיני ערך לתשפ״ז..."
+            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:3px">חוברת למורה</div>
+          <div id="manualBookletPrevRef" style="font-size:11px;color:#0a4a62;background:#eef8fc;border:1px solid #2aa0c8;border-radius:5px;padding:3px 8px;margin-bottom:5px;min-height:20px"></div>
+          <input id="manualBookletInput" placeholder="הזיני ערך לתשפ״ז..."
+            style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;gap:10px">
       <button onclick="saveManualOrder()" style="flex:1;padding:11px;background:var(--accent);color:#fff;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;border:none;border-radius:9px;cursor:pointer">שמור הזמנה</button>
       <button onclick="closeManual()" style="padding:11px 18px;background:none;border:1px solid var(--border);border-radius:9px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">ביטול</button>
