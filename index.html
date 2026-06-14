@@ -412,6 +412,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         <div class="cc-sub" id="ccSub"></div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="openAddOrder()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-family:'Heebo',sans-serif;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer">✏️ הוסף הזמנה ידנית</button>
         <button class="cc-close" onclick="closeCard()">✕</button>
       </div>
     </div>
@@ -445,7 +446,7 @@ const C = {
 };
 
 // ══ STATE ══
-let D={}, H={}, activeY=YEARS[0].label, scI=null, ccI=null, _trows=[];
+let D={}, H={}, activeY=YEARS[1].label, scI=null, ccI=null, _trows=[];
 
 // ══ FETCH ══
 async function fetchTab(tab){
@@ -662,8 +663,11 @@ async function init(){
     }
   }
   if(!loaded){showErr('לא נטענו נתונים — וודאי ששיתפת את הגיליון לצפייה (Anyone with link → Viewer)');hideLoader();return;}
-  const first=YEARS.find(y=>D[y.label]?.length);
-  if(first)activeY=first.label;
+  // Stay on תשפ"ז (YEARS[0]) even if empty; fall back only if no data at all
+  if(!D[activeY]||!D[activeY].length){
+    const first=YEARS.find(y=>D[y.label]?.length);
+    if(first)activeY=first.label;
+  }
   updYbtns();
   render();
   hideLoader();
@@ -962,27 +966,27 @@ function openCard(encoded){
   document.getElementById('ccSub').textContent=`${latest[C.city]||''} ${latest[C.school]?'| '+latest[C.school]:''}`;
 
   // Meta
-  const supStatus = isSup(latest);
-  const paidStatus = isPaid(latest);
   const meta=[
     {l:'עיר',v:latest[C.city]},
     {l:'כתובת',v:latest[C.target]},
     {l:'איש קשר',v:latest[C.contact]},
     {l:'טלפון',v:latest[C.phone]},
+    {l:'חשבונית על שם',v:latest[C.invoice]},
     {l:'שליח',v:latest[C.ship]},
-    {l:'מדריך למורה',v:latest[C.guide]},
-    {l:'חוברת למורה',v:latest[C.booklet]},
   ].filter(m=>m.v);
   document.getElementById('ccMeta').innerHTML=
-    `<div class="cc-mitem" style="background:${supStatus?'#e6f4ec':'#fffbec'};border:1px solid ${supStatus?'#b7ddc6':'#f5e0a0'}">
-      <div class="cc-mlbl">אספקה</div>
-      <div class="cc-mval" style="color:${supStatus?'#1a6b35':'#7a5c00'}">${supStatus?'✅ סופק':'⏳ לא סופק'}</div>
-    </div>
-    <div class="cc-mitem" style="background:${paidStatus?'#f0e6ff':'#fffbec'};border:1px solid ${paidStatus?'#d4b3f5':'#f5e0a0'}">
-      <div class="cc-mlbl">תשלום</div>
-      <div class="cc-mval" style="color:${paidStatus?'#5a2d82':'#7a5c00'}">${paidStatus?'💜 שולם':'💳 לא שולם'}</div>
+    `<div class="cc-mitem" style="background:${supStatus?'#e8f8ee':'#fffbec'};border:1px solid ${supStatus?'#b7ddc6':'#f5e0a0'};display:flex;align-items:center;gap:8px">
+      <span style="font-size:18px">${supStatus?'✅':'⏳'}</span>
+      <div><div class="cc-mlbl">אספקה</div><div class="cc-mval" style="color:${supStatus?'#1a6b35':'#7a5c00'}">${supStatus?'סופק':'לא סופק'}</div></div>
     </div>`+
-    meta.map(m=>`<div class="cc-mitem"><div class="cc-mlbl">${m.l}</div><div class="cc-mval">${m.v}</div></div>`).join('');
+    meta.filter(m=>m.l!=='מדריך למורה'&&m.l!=='חוברת למורה').map(m=>`<div class="cc-mitem"><div class="cc-mlbl">${m.l}</div><div class="cc-mval">${m.v}</div></div>`).join('')+
+    (latest[C.guide]||latest[C.booklet]?`<div style="grid-column:1/-1;background:#eef8fc;border:1px solid #2aa0c8;border-radius:8px;padding:10px 14px;margin-top:4px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.05em;color:#0a4a62;margin-bottom:8px">📚 מדריך וחוברת למורה — תשפ״ו</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        ${latest[C.guide]?`<div><div style="font-size:10px;color:var(--dim)">מדריך</div><div style="font-size:13px;font-weight:600;color:#0a4a62">${latest[C.guide]}</div></div>`:''}
+        ${latest[C.booklet]?`<div><div style="font-size:10px;color:var(--dim)">חוברת</div><div style="font-size:13px;font-weight:600;color:#0a4a62">${latest[C.booklet]}</div></div>`:''}
+      </div>
+    </div>`:'');
 
   // Years history
   const currentYear = YEARS[0].label; // תשפ"ז
@@ -1077,13 +1081,25 @@ function openAddOrder(schoolName){
 }
 
 function updateManualGuides(){
-  // עדכן שורות מדריך/חוברת למורה לפי הספרים שהוזמנו
   const prevYear = YEARS[1]?.label;
   const prevRow = _manualSchool ? (D[prevYear]||[]).find(r=>String(r[C.name]||'').trim()===_manualSchool) : null;
+
+  // הצג ערכי תשפ"ו
+  ['Guide','Booklet'].forEach(type=>{
+    const prevKey = type==='Guide' ? C.guide : C.booklet;
+    const prevValEl = document.getElementById('manual'+type+'PrevVal');
+    if(prevValEl && prevRow){
+      const pv = String(prevRow[prevKey]||'').trim();
+      if(pv){ prevValEl.textContent='תשפ״ו: '+pv; prevValEl.style.display='block'; }
+      else prevValEl.style.display='none';
+    } else if(prevValEl){ prevValEl.style.display='none'; }
+  });
+
   const orderedBooks = BOOKS.filter(b=>{
-    const el = document.getElementById('mb_'+b.replace(/[^a-zA-Zא-ת]/g,'_'));
+    const el = document.getElementById('mb_'+b.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_'));
     return el && Number(el.value) > 0;
   });
+
   ['Guide','Booklet'].forEach(type=>{
     const wrap = document.getElementById('manual'+type+'Rows');
     if(!wrap) return;
@@ -1094,13 +1110,12 @@ function updateManualGuides(){
     }
     wrap.innerHTML = orderedBooks.map(b=>{
       const prevVal = prevRow ? String(prevRow[prevKey]||'') : '';
-      // Try to extract prev qty for this book from combined string e.g. 'מתחברת למילים - 2'
       const prevMatch = prevVal.match(new RegExp(b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*-\\s*(\\d+)'));
       const prevQty = prevMatch ? prevMatch[1] : '';
-      const safeId = 'mg_'+type+'_'+b.replace(/[^a-zA-Zא-ת]/g,'_');
+      const safeId = 'mg_'+type+'_'+b.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
       return `<div style="margin-bottom:8px">
         <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:2px">${b}</div>
-        ${prevQty?`<div style="font-size:10px;color:#0a4a62;background:#eef8fc;border:1px solid #2aa0c8;border-radius:4px;padding:2px 6px;margin-bottom:3px">תשפ״ו: ${prevQty}</div>`:''}
+        ${prevQty?`<div style="font-size:10px;color:#0a4a62;background:#fff;border:1px solid #2aa0c8;border-radius:4px;padding:2px 6px;margin-bottom:3px">תשפ״ו: ${prevQty}</div>`:''}
         <input type="number" min="0" id="${safeId}" placeholder="כמות..."
           style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:5px;padding:4px 8px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:var(--accent);outline:none"/>
       </div>`;
@@ -1109,10 +1124,9 @@ function updateManualGuides(){
 }
 
 function buildGuideBookletString(type){
-  // בנה סטרינג משולב: 'מתחברת למילים - 2, ברוכה הבאה ה - 3'
   const parts = [];
   BOOKS.forEach(b=>{
-    const safeId = 'mg_'+type+'_'+b.replace(/[^a-zA-Zא-ת]/g,'_');
+    const safeId = 'mg_'+type+'_'+b.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
     const el = document.getElementById(safeId);
     if(el && Number(el.value) > 0) parts.push(b+' - '+el.value);
   });
@@ -1244,6 +1258,8 @@ function openManualStandalone(){
   document.getElementById('manualNote').value='';
   const _gr=document.getElementById('manualGuideRows'); if(_gr) _gr.innerHTML='';
   const _br=document.getElementById('manualBookletRows'); if(_br) _br.innerHTML='';
+  const _gpv=document.getElementById('manualGuidePrevVal'); if(_gpv) _gpv.style.display='none';
+  const _bpv=document.getElementById('manualBookletPrevVal'); if(_bpv) _bpv.style.display='none';
 
   // בנה שדות פרטי לקוח
   const detailsWrap = document.getElementById('manualClientDetails');
@@ -1253,7 +1269,6 @@ function openManualStandalone(){
       {id:'manualPhone',   label:'טלפון',           icon:'📞'},
       {id:'manualTarget',  label:'כתובת יעד',       icon:'📍'},
       {id:'manualCity',    label:'עיר',             icon:'🏙️'},
-      {id:'manualInvoice', label:'חשבונית על שם',   icon:'🧾'},
     ];
     detailsWrap.innerHTML = fields.map(f=>`
       <div style="background:var(--surface2);border-radius:8px;padding:8px 12px">
@@ -1386,6 +1401,17 @@ function pickManualSchool(name){
       // אחרת (ספר חדש) — לא נוגעים בעיצוב כלל בשלב הזה
     });
   }
+  // הצג מדריך/חוברת מתשפ"ו
+  // removed
+  // removed
+  if(prevRow && guideRef){
+    const gv = String(prevRow[C.guide]||'').trim();
+    guideRef.textContent = gv ? 'תשפ״ו: ' + gv : 'תשפ״ו: —';
+  } else if(guideRef){ guideRef.textContent = ''; }
+  if(prevRow && bookletRef){
+    const bv = String(prevRow[C.booklet]||'').trim();
+    bookletRef.textContent = bv ? 'תשפ״ו: ' + bv : 'תשפ״ו: —';
+  } else if(bookletRef){ bookletRef.textContent = ''; }
   updateManualGuides();
 }
 
@@ -1742,7 +1768,6 @@ function showPreview(data){
     { key:'phone',   label:'טלפון',           icon:'📞' },
     { key:'target',  label:'כתובת יעד',       icon:'📍' },
     { key:'city',    label:'עיר',             icon:'🏙️' },
-    { key:'invoice', label:'חשבונית על שם',   icon:'🧾' },
   ];
 
   const detailsHtml = `
@@ -1804,6 +1829,28 @@ function showPreview(data){
         }).join('')}
       </div>
     </div>` : ''}
+
+    <!-- מדריך וחוברת למורה -->
+    <div style="border:1px solid #2aa0c8;border-radius:10px;padding:14px 16px;margin-top:14px;background:#eef8fc">
+      <div style="font-size:12px;font-weight:700;color:#0a4a62;margin-bottom:10px">📚 מדריך וחוברת למורה — תשפ״ו</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">מדריך למורה</div>
+          <div style="font-size:12px;font-weight:600;color:#0a4a62">${existingRow&&existingRow[C.guide]?existingRow[C.guide]:'—'}</div></div>
+        <div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">חוברת למורה</div>
+          <div style="font-size:12px;font-weight:600;color:#0a4a62">${existingRow&&existingRow[C.booklet]?existingRow[C.booklet]:'—'}</div></div>
+      </div>
+      <div style="font-size:11px;color:#0a4a62;font-weight:700;margin-bottom:6px">לתשפ״ז:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">מדריך למורה</div>
+          <input id="detail_guide" value="${data.guide||''}" placeholder="הזיני..."
+            style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:5px;padding:5px 8px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"
+            oninput="if(pendingOrder)pendingOrder.guide=this.value"/></div>
+        <div><div style="font-size:10px;color:var(--dim);margin-bottom:3px">חוברת למורה</div>
+          <input id="detail_booklet" value="${data.booklet||''}" placeholder="הזיני..."
+            style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:5px;padding:5px 8px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"
+            oninput="if(pendingOrder)pendingOrder.booklet=this.value"/></div>
+      </div>
+    </div>
 
     <!-- Notes -->
     <div style="margin-top:14px">
@@ -1902,7 +1949,7 @@ async function approveOrder(){
   if (schoolEdit) pendingOrder.school = schoolEdit.value.trim() || pendingOrder.school;
 
   // Update detail fields from form
-  ['contact','phone','target','city','invoice'].forEach(k => {
+  ['contact','phone','target','city','guide','booklet'].forEach(k => {
     const el = document.getElementById('detail_'+k);
     if (el) pendingOrder[k] = el.value.trim();
   });
@@ -1932,8 +1979,9 @@ async function approveOrder(){
     phone:   pendingOrder.phone   || '',
     target:  pendingOrder.target  || '',
     city:    pendingOrder.city    || '',
-    invoice: pendingOrder.invoice || '',
     notes:   pendingOrder.notes   || '',
+    guide:   pendingOrder.guide   || '',
+    booklet: pendingOrder.booklet || '',
     gaps: pendingOrder.gaps,
     warehouse: 'א',
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === pendingOrder.school),
@@ -2066,23 +2114,25 @@ function showUploadStatus(type, msg){
     </div>
     <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:8px;text-transform:uppercase">כמויות ספרים</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px" id="manualBooks"></div>
-    <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">הערה</div>
-    <textarea id="manualNote" placeholder="הערה אופציונלית..." rows="2"
-      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;margin-bottom:16px"></textarea>
     <!-- מדריך וחוברת למורה -->
-    <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:var(--surface2)">
-      <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:12px;text-transform:uppercase">📚 מדריך וחוברת למורה</div>
+    <div style="border:1px solid #2aa0c8;border-radius:10px;padding:14px 16px;margin-bottom:16px;background:#eef8fc">
+      <div style="font-size:12px;font-weight:700;color:#0a4a62;margin-bottom:12px;text-transform:uppercase">📚 מדריך וחוברת למורה</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div>
-          <div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:8px">מדריך למורה</div>
-          <div id="manualGuideRows"></div>
+          <div style="font-size:11px;font-weight:700;color:#0a4a62;margin-bottom:6px">מדריך למורה</div>
+          <div id="manualGuidePrevVal" style="font-size:11px;color:#0a4a62;background:#fff;border:1px solid #2aa0c8;border-radius:5px;padding:3px 8px;margin-bottom:6px;display:none"></div>
+          <div id="manualGuideRows"><div style="font-size:11px;color:var(--dim)">הזן כמויות ספרים תחילה</div></div>
         </div>
         <div>
-          <div style="font-size:11px;font-weight:700;color:var(--dim);margin-bottom:8px">חוברת למורה</div>
-          <div id="manualBookletRows"></div>
+          <div style="font-size:11px;font-weight:700;color:#0a4a62;margin-bottom:6px">חוברת למורה</div>
+          <div id="manualBookletPrevVal" style="font-size:11px;color:#0a4a62;background:#fff;border:1px solid #2aa0c8;border-radius:5px;padding:3px 8px;margin-bottom:6px;display:none"></div>
+          <div id="manualBookletRows"><div style="font-size:11px;color:var(--dim)">הזן כמויות ספרים תחילה</div></div>
         </div>
       </div>
     </div>
+    <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase;margin-top:16px">הערה</div>
+    <textarea id="manualNote" placeholder="הערה אופציונלית..." rows="2"
+      style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;margin-bottom:16px"></textarea>
     <div style="display:flex;gap:10px">
       <button onclick="saveManualOrder()" style="flex:1;padding:11px;background:var(--accent);color:#fff;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;border:none;border-radius:9px;cursor:pointer">שמור הזמנה</button>
       <button onclick="closeManual()" style="padding:11px 18px;background:none;border:1px solid var(--border);border-radius:9px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">ביטול</button>
