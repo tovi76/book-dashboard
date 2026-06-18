@@ -1466,7 +1466,7 @@ function parsePDFText(raw) {
 
   if (schoolLine) {
     // Extract raw school name — user confirms in preview
-    const afterMarker = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[,\s]+/, '').trim();
+    const afterMarker = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[:,\s]+/, '').trim();
     const rawMatch = afterMarker.match(/^(.+?)(?:\s*,|\s+\d{7,}|\s+טלפון|$)/);
     school = rawMatch ? rawMatch[1].replace(/\s+\d+$/, '').trim() : afterMarker.split(',')[0].trim();
   }
@@ -1593,13 +1593,15 @@ async function processPDF(file){
       return;
     }
 
-    // The text is RTL-reversed per line — normalize it
+    // The text is RTL-reversed at both letter and word level — normalize it
     const normalizedText = rawText.split(/\r?\n/).map(line => {
       const cleaned = cleanRTL(line).trim();
       if (!cleaned) return '';
-      // Reverse words order to get correct Hebrew reading direction
       const words = cleaned.split(/\s+/);
-      return words.reverse().join(' ');
+      // Reverse letters within each word (unless it's purely numbers/punctuation),
+      // then reverse the word order — this undoes PDF.co's OCR RTL extraction quirk
+      const fixedWords = words.map(w => /^[\d.,/:%-]+$/.test(w) ? w : w.split('').reverse().join(''));
+      return fixedWords.reverse().join(' ');
     }).join('\n');
 
     console.log('Normalized text:', normalizedText.slice(0, 500));
