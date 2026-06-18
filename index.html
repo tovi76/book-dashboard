@@ -1929,6 +1929,8 @@ async function approveOrder(){
   btn.textContent='⏳ שומר...'; btn.disabled=true;
 
   // Calculate gaps vs previous year
+  console.log('DEBUG pendingOrder._guide:', JSON.stringify(pendingOrder._guide));
+  console.log('DEBUG pendingOrder._booklet:', JSON.stringify(pendingOrder._booklet));
   const gaps = calcGaps(pendingOrder.books || [], pendingOrder.school);
   pendingOrder.gaps = gaps.map(g=>g.text).join(' | ');
   pendingOrder.gapType = gaps[0]?.type || '';
