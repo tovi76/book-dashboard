@@ -446,7 +446,7 @@ const C = {
 };
 
 // ══ STATE ══
-let D={}, H={}, activeY=YEARS[0].label, scI=null, ccI=null, _trows=[];
+let D={}, H={}, activeY=YEARS[1].label, scI=null, ccI=null, _trows=[];
 
 // ══ FETCH ══
 async function fetchTab(tab){
@@ -663,10 +663,8 @@ async function init(){
     }
   }
   if(!loaded){showErr('לא נטענו נתונים — וודאי ששיתפת את הגיליון לצפייה (Anyone with link → Viewer)');hideLoader();return;}
-  if(!D[activeY]||!D[activeY].length){
-    const first=YEARS.find(y=>D[y.label]?.length);
-    if(first)activeY=first.label;
-  }
+  const first=YEARS.find(y=>D[y.label]?.length);
+  if(first)activeY=first.label;
   updYbtns();
   render();
   hideLoader();
@@ -1595,7 +1593,7 @@ async function processPDF(file){
       return;
     }
 
-    // The text is RTL-reversed at both letter and word level — normalize it
+    // The text is RTL-reversed per line — normalize it
     const normalizedText = rawText.split(/\r?\n/).map(line => {
       const cleaned = cleanRTL(line).trim();
       if (!cleaned) return '';
