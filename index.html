@@ -1796,15 +1796,17 @@ function showPreview(data){
           const bPrev = bMatch ? bMatch[1] : (prevBooklet.trim() || '');
           const gId = 'pdf_guide_'+bk.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
           const bId = 'pdf_booklet_'+bk.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
+          const gSaved = (data._guide && data._guide[bk]) ? data._guide[bk] : '';
+          const bSaved = (data._booklet && data._booklet[bk]) ? data._booklet[bk] : '';
           return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:start;padding:5px 0;border-bottom:1px solid #c8e8f5">'+
             '<div style="font-size:11px;font-weight:600;color:#0a4a62;padding-top:6px">'+bk+'</div>'+
             '<div><div style="font-size:12px;color:#0a4a62;font-weight:600;margin-bottom:4px">'+(gPrev?'תשפ״ו: '+gPrev:'')+'</div>'+
-              '<input type="number" min="0" id="'+gId+'" placeholder="כמות..." '+
+              '<input type="number" min="0" id="'+gId+'" placeholder="כמות..." value="'+gSaved+'" '+
               'style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:4px;padding:4px 6px;font-size:13px;font-weight:600;color:var(--accent);outline:none" '+
               'oninput="(function(){if(pendingOrder){if(!pendingOrder._guide)pendingOrder._guide={};pendingOrder._guide[\''+bk.replace(/'/g,"\\'")+'\']=Number(this.value)||0;}})()"/>'+
             '</div>'+
             '<div><div style="font-size:12px;color:#0a4a62;font-weight:600;margin-bottom:4px">'+(bPrev?'תשפ״ו: '+bPrev:'')+'</div>'+
-              '<input type="number" min="0" id="'+bId+'" placeholder="כמות..." '+
+              '<input type="number" min="0" id="'+bId+'" placeholder="כמות..." value="'+bSaved+'" '+
               'style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:4px;padding:4px 6px;font-size:13px;font-weight:600;color:var(--accent);outline:none" '+
               'oninput="(function(){if(pendingOrder){if(!pendingOrder._booklet)pendingOrder._booklet={};pendingOrder._booklet[\''+bk.replace(/'/g,"\\'")+'\']=Number(this.value)||0;}})()"/>'+
             '</div>'+
