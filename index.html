@@ -446,7 +446,7 @@ const C = {
 };
 
 // ══ STATE ══
-let D={}, H={}, activeY=YEARS[1].label, scI=null, ccI=null, _trows=[];
+let D={}, H={}, activeY=YEARS[0].label, scI=null, ccI=null, _trows=[];
 
 // ══ FETCH ══
 async function fetchTab(tab){
@@ -663,8 +663,10 @@ async function init(){
     }
   }
   if(!loaded){showErr('לא נטענו נתונים — וודאי ששיתפת את הגיליון לצפייה (Anyone with link → Viewer)');hideLoader();return;}
-  const first=YEARS.find(y=>D[y.label]?.length);
-  if(first)activeY=first.label;
+  if(!D[activeY]||!D[activeY].length){
+    const first=YEARS.find(y=>D[y.label]?.length);
+    if(first)activeY=first.label;
+  }
   updYbtns();
   render();
   hideLoader();
@@ -1466,7 +1468,7 @@ function parsePDFText(raw) {
 
   if (schoolLine) {
     // Extract raw school name — user confirms in preview
-    const afterMarker = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[:,\s]+/, '').trim();
+    const afterMarker = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[,\s]+/, '').trim();
     const rawMatch = afterMarker.match(/^(.+?)(?:\s*,|\s+\d{7,}|\s+טלפון|$)/);
     school = rawMatch ? rawMatch[1].replace(/\s+\d+$/, '').trim() : afterMarker.split(',')[0].trim();
   }
@@ -1598,8 +1600,8 @@ async function processPDF(file){
       const cleaned = cleanRTL(line).trim();
       if (!cleaned) return '';
       const words = cleaned.split(/\s+/);
-      // Reverse letters within each word (unless it's purely numbers/punctuation),
-      // then reverse the word order — this undoes PDF.co's OCR RTL extraction quirk
+      // Reverse letters within each word (unless purely numbers/punctuation),
+      // then reverse word order — undoes PDF.co OCR RTL extraction quirk
       const fixedWords = words.map(w => /^[\d.,/:%-]+$/.test(w) ? w : w.split('').reverse().join(''));
       return fixedWords.reverse().join(' ');
     }).join('\n');
@@ -1676,17 +1678,11 @@ function showPreview(data){
             if (prevQty !== null && !b.dropped) {
               diffText = diffText || '= זהה';
             }
-            const bookSafeId = 'pdfbook_'+b.name.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
             return `<div style="background:${cardBg};border:${cardBorder};border-radius:8px;padding:10px 12px;text-align:center">
               <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${b.name}</div>
-              ${b.dropped
-                ? `<div style="font-size:20px;font-weight:900;color:#1a5f72">—</div>
-                   <div style="font-size:11px;color:#1a5f72;margin-top:2px">היה ${prevQty} — הורד</div>`
-                : `<input type="number" min="0" id="${bookSafeId}" value="${b.qty}"
-                     oninput="(()=>{const f=(pendingOrder.books||[]).find(x=>x.name==='${b.name.replace(/'/g,"\'")}');if(f)f.qty=Number(this.value)||0;else{if(!pendingOrder.books)pendingOrder.books=[];pendingOrder.books.push({name:'${b.name.replace(/'/g,"\'")}',qty:Number(this.value)||0});}})()"
-                     style="width:100%;text-align:center;font-size:18px;font-weight:900;color:var(--accent);background:transparent;border:none;border-bottom:2px solid var(--accent);outline:none;padding:2px 0;margin-bottom:4px"/>
-                   ${prevQty !== null ? `<div style="font-size:11px;color:${diffColor};margin-top:2px">${diffText}${prevQty>0?' ('+prevYear+': '+prevQty+')':''}</div>` : ''}`
-              }
+              <div style="font-size:20px;font-weight:900;color:${b.dropped?'#1a5f72':'var(--accent)'}">${b.dropped?'—':b.qty}</div>
+              ${b.dropped ? `<div style="font-size:11px;color:#1a5f72;margin-top:2px">היה ${prevQty} — הורד</div>` :
+                prevQty !== null ? `<div style="font-size:11px;color:${diffColor};margin-top:2px">${diffText}${prevQty>0?` (${prevYear}: ${prevQty})`:''}</div>` : ''}
             </div>`;
           }).join('');
         })()}
@@ -1775,44 +1771,6 @@ function showPreview(data){
         }).join('')}
       </div>
     </div>` : ''}
-
-
-    <!-- מדריך וחוברת למורה -->
-    <div style="border:1px solid #2aa0c8;border-radius:10px;padding:14px 16px;margin-top:14px;background:#eef8fc">
-      <div style="font-size:12px;font-weight:700;color:#0a4a62;margin-bottom:10px">📚 מדריך וחוברת למורה</div>
-      ${(()=>{
-        const ordBooks = (data.books||[]).filter(b=>b.qty>0).map(b=>b.name);
-        if(!ordBooks.length) return '<div style="font-size:11px;color:var(--dim)">אין ספרים שהוזמנו</div>';
-        const prevGuide = existingRow ? String(existingRow[C.guide]||'') : '';
-        const prevBooklet = existingRow ? String(existingRow[C.booklet]||'') : '';
-        return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">'+
-          '<div style="font-size:10px;font-weight:700;color:#0a4a62">ספר</div>'+
-          '<div style="font-size:10px;font-weight:700;color:#0a4a62">מדריך למורה</div>'+
-          '<div style="font-size:10px;font-weight:700;color:#0a4a62">חוברת למורה</div>'+
-        '</div>'+
-        ordBooks.map(bk=>{
-          const gMatch = prevGuide.match(new RegExp(bk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*-\\s*(\\d+)'));
-          const bMatch = prevBooklet.match(new RegExp(bk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*-\\s*(\\d+)'));
-          const gPrev = gMatch ? gMatch[1] : '';
-          const bPrev = bMatch ? bMatch[1] : '';
-          const gId = 'pdf_guide_'+bk.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
-          const bId = 'pdf_booklet_'+bk.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
-          return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:start;padding:5px 0;border-bottom:1px solid #c8e8f5">'+
-            '<div style="font-size:11px;font-weight:600;color:#0a4a62;padding-top:4px">'+bk+'</div>'+
-            '<div><div style="font-size:9px;color:var(--dim);margin-bottom:2px">'+(gPrev?'תשפ״ו: '+gPrev:'')+'</div>'+
-              '<input type="number" min="0" id="'+gId+'" placeholder="כמות..." '+
-              'style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:4px;padding:4px 6px;font-size:13px;font-weight:600;color:var(--accent);outline:none" '+
-              'oninput="(function(){if(pendingOrder){if(!pendingOrder._guide)pendingOrder._guide={};pendingOrder._guide[\''+bk.replace(/'/g,"\\'")+'\']= Number(this.value)||0;}})()"/>'+
-            '</div>'+
-            '<div><div style="font-size:9px;color:var(--dim);margin-bottom:2px">'+(bPrev?'תשפ״ו: '+bPrev:'')+'</div>'+
-              '<input type="number" min="0" id="'+bId+'" placeholder="כמות..." '+
-              'style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:4px;padding:4px 6px;font-size:13px;font-weight:600;color:var(--accent);outline:none" '+
-              'oninput="(function(){if(pendingOrder){if(!pendingOrder._booklet)pendingOrder._booklet={};pendingOrder._booklet[\''+bk.replace(/'/g,"\\'")+'\']= Number(this.value)||0;}})()"/>'+
-            '</div>'+
-          '</div>';
-        }).join('');
-      })()}
-    </div>
 
     <!-- Notes -->
     <div style="margin-top:14px">
@@ -1943,8 +1901,6 @@ async function approveOrder(){
     city:    pendingOrder.city    || '',
     invoice: pendingOrder.invoice || '',
     notes:   pendingOrder.notes   || '',
-    guide:   (()=>{const g=pendingOrder._guide||{};const s=Object.entries(g).filter(([,v])=>v>0).map(([k,v])=>k+' - '+v).join(', ');return s||pendingOrder.guide||'';})(  ),
-    booklet: (()=>{const b=pendingOrder._booklet||{};const s=Object.entries(b).filter(([,v])=>v>0).map(([k,v])=>k+' - '+v).join(', ');return s||pendingOrder.booklet||'';})(  ),
     gaps: pendingOrder.gaps,
     warehouse: 'א',
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === pendingOrder.school),
