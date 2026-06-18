@@ -446,7 +446,7 @@ const C = {
 };
 
 // ══ STATE ══
-let D={}, H={}, activeY=YEARS[1].label, scI=null, ccI=null, _trows=[];
+let D={}, H={}, activeY=YEARS[0].label, scI=null, ccI=null, _trows=[];
 
 // ══ FETCH ══
 async function fetchTab(tab){
@@ -663,8 +663,10 @@ async function init(){
     }
   }
   if(!loaded){showErr('לא נטענו נתונים — וודאי ששיתפת את הגיליון לצפייה (Anyone with link → Viewer)');hideLoader();return;}
-  const first=YEARS.find(y=>D[y.label]?.length);
-  if(first)activeY=first.label;
+  if(!D[activeY]||!D[activeY].length){
+    const first=YEARS.find(y=>D[y.label]?.length);
+    if(first)activeY=first.label;
+  }
   updYbtns();
   render();
   hideLoader();
@@ -1465,10 +1467,21 @@ function parsePDFText(raw) {
   }
 
   if (schoolLine) {
-    // Extract raw school name — user confirms in preview
-    const afterMarker = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[,\s]+/, '').trim();
-    const rawMatch = afterMarker.match(/^(.+?)(?:\s*,|\s+\d{7,}|\s+טלפון|$)/);
-    school = rawMatch ? rawMatch[1].replace(/\s+\d+$/, '').trim() : afterMarker.split(',')[0].trim();
+    // Match against known clients first (handles all word-order variants)
+    const _known = [...new Set(Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean))].sort((a,b)=>b.length-a.length);
+    for (const c of _known) {
+      if (c.split(/\s+/).every(w => schoolLine.includes(w))) { school = c; break; }
+    }
+    if (school === 'לא זוהה') {
+      // Forward pattern: הזמנה עבור בית ספר: שם, ...
+      const m1 = schoolLine.match(/הזמנה עבור בית ספר:?\s*(.+?)(?:,|\s+\d{7,}|$)/);
+      if (m1) school = m1[1].trim();
+    }
+    if (school === 'לא זוהה') {
+      // Reverse pattern: Hebrew word(s) before ספר after last comma
+      const m2 = schoolLine.match(/,\s*([א-ת]+(?:\s+[א-ת]+)?)\s+ספר/);
+      if (m2) school = m2[1].trim();
+    }
   }
 
 
@@ -1593,15 +1606,19 @@ async function processPDF(file){
       return;
     }
 
-    // The text is RTL-reversed per line — normalize it
+    // Normalize RTL: reverse letters within each word only (keep word order)
     const normalizedText = rawText.split(/\r?\n/).map(line => {
       const cleaned = cleanRTL(line).trim();
       if (!cleaned) return '';
       const words = cleaned.split(/\s+/);
-      // Reverse letters within each word (unless purely numbers/punctuation),
-      // then reverse word order — undoes PDF.co OCR RTL extraction quirk
-      const fixedWords = words.map(w => /^[\d.,/:%-]+$/.test(w) ? w : w.split('').reverse().join(''));
-      return fixedWords.reverse().join(' ');
+      const fixedWords = words.map(w => {
+        if (/^[\d.,/:%-]+$/.test(w)) return w;
+        let rev = w.split('').reverse().join('');
+        if (rev.startsWith(':') && rev.length > 1) rev = rev.slice(1) + ':';
+        if (rev.startsWith(',') && rev.length > 1) rev = rev.slice(1) + ',';
+        return rev;
+      });
+      return fixedWords.join(' ');
     }).join('\n');
 
     console.log('Normalized text:', normalizedText.slice(0, 500));
