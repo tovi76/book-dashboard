@@ -1595,8 +1595,18 @@ async function processPDF(file){
       return;
     }
 
-    // Text from Make/HTTP is already correct Hebrew — just clean RTL markers
-    const normalizedText = rawText.split(/\r?\n/).map(line => cleanRTL(line).trim()).join('\n');
+    // Normalize: reverse word order per line, fix colon/comma placement
+    const normalizedText = rawText.split(/\r?\n/).map(line => {
+      const cleaned = cleanRTL(line).trim();
+      if (!cleaned) return '';
+      const words = cleaned.split(/\s+/);
+      const fixed = [...words].reverse().map(w => {
+        if (w.startsWith(':') && w.length > 1) w = w.slice(1) + ':';
+        if (w.startsWith(',') && w.length > 1) w = w.slice(1) + ',';
+        return w;
+      });
+      return fixed.join(' ');
+    }).join('\n');
 
     console.log('Normalized text:', normalizedText.slice(0, 500));
 
