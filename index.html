@@ -1792,8 +1792,8 @@ function showPreview(data){
         ordBooks.map(bk=>{
           const gMatch = prevGuide.match(new RegExp(bk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*-\\s*(\\d+)'));
           const bMatch = prevBooklet.match(new RegExp(bk.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*-\\s*(\\d+)'));
-          const gPrev = gMatch ? gMatch[1] : '';
-          const bPrev = bMatch ? bMatch[1] : '';
+          const gPrev = gMatch ? gMatch[1] : (prevGuide.trim() || '');
+          const bPrev = bMatch ? bMatch[1] : (prevBooklet.trim() || '');
           const gId = 'pdf_guide_'+bk.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
           const bId = 'pdf_booklet_'+bk.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
           return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:start;padding:5px 0;border-bottom:1px solid #c8e8f5">'+
