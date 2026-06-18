@@ -1798,12 +1798,12 @@ function showPreview(data){
           const bId = 'pdf_booklet_'+bk.replace(/[^a-zA-Z\u05d0-\u05ea]/g,'_');
           return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:start;padding:5px 0;border-bottom:1px solid #c8e8f5">'+
             '<div style="font-size:11px;font-weight:600;color:#0a4a62;padding-top:6px">'+bk+'</div>'+
-            '<div><div style="font-size:9px;color:var(--dim);margin-bottom:2px">'+(gPrev?'תשפ״ו: '+gPrev:'')+'</div>'+
+            '<div><div style="font-size:12px;color:#0a4a62;font-weight:600;margin-bottom:4px">'+(gPrev?'תשפ״ו: '+gPrev:'')+'</div>'+
               '<input type="number" min="0" id="'+gId+'" placeholder="כמות..." '+
               'style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:4px;padding:4px 6px;font-size:13px;font-weight:600;color:var(--accent);outline:none" '+
               'oninput="(function(){if(pendingOrder){if(!pendingOrder._guide)pendingOrder._guide={};pendingOrder._guide[\''+bk.replace(/'/g,"\\'")+'\']=Number(this.value)||0;}})()"/>'+
             '</div>'+
-            '<div><div style="font-size:9px;color:var(--dim);margin-bottom:2px">'+(bPrev?'תשפ״ו: '+bPrev:'')+'</div>'+
+            '<div><div style="font-size:12px;color:#0a4a62;font-weight:600;margin-bottom:4px">'+(bPrev?'תשפ״ו: '+bPrev:'')+'</div>'+
               '<input type="number" min="0" id="'+bId+'" placeholder="כמות..." '+
               'style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:4px;padding:4px 6px;font-size:13px;font-weight:600;color:var(--accent);outline:none" '+
               'oninput="(function(){if(pendingOrder){if(!pendingOrder._booklet)pendingOrder._booklet={};pendingOrder._booklet[\''+bk.replace(/'/g,"\\'")+'\']=Number(this.value)||0;}})()"/>'+
@@ -1816,9 +1816,10 @@ function showPreview(data){
     <!-- Notes -->
     <div style="margin-top:14px">
       <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">💬 הערות</div>
-      <textarea id="orderNotes" placeholder="הערות אופציונליות..." rows="2"
+      ${existingRow && String(existingRow[C.notes]||'').trim() ? `<div style="font-size:12px;color:#0a4a62;font-weight:600;background:#eef8fc;border:1px solid #2aa0c8;border-radius:6px;padding:6px 10px;margin-bottom:6px">הערה משנה שעברה: ${String(existingRow[C.notes]).trim()}</div>` : ''}
+      <textarea id="orderNotes" placeholder="הערה חדשה לתשפ״ז (אופציונלי — אם לא תכתבי כלום, לא תישמר הערה)..." rows="2"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;direction:rtl"
-        oninput="if(pendingOrder)pendingOrder.notes=this.value">${existingRow?String(existingRow[C.notes]||''):''}</textarea>
+        oninput="if(pendingOrder)pendingOrder.notes=this.value"></textarea>
     </div>
 
     ${data.rawText?`<details style="margin-top:10px"><summary style="font-size:11px;color:var(--dim);cursor:pointer">הצג טקסט גולמי מה-PDF</summary><pre style="font-size:10px;background:var(--surface2);padding:10px;border-radius:8px;margin-top:6px;overflow-x:auto;white-space:pre-wrap;direction:rtl;max-height:160px">${data.rawText.slice(0,800)}</pre></details>`:''}
