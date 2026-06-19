@@ -1803,12 +1803,12 @@ function showPreview(data){
             '<div><div style="font-size:12px;color:#0a4a62;font-weight:600;margin-bottom:4px">'+(gPrev?'תשפ״ו: '+gPrev:'')+'</div>'+
               '<input type="number" min="0" id="'+gId+'" placeholder="כמות..." value="'+gSaved+'" '+
               'style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:4px;padding:4px 6px;font-size:13px;font-weight:600;color:var(--accent);outline:none" '+
-              'oninput="(function(){if(pendingOrder){if(!pendingOrder._guide)pendingOrder._guide={};pendingOrder._guide[\''+bk.replace(/'/g,"\\'")+'\']=Number(this.value)||0;}})()"/>'+
+              'oninput="(function(el){if(pendingOrder){if(!pendingOrder._guide)pendingOrder._guide={};pendingOrder._guide[\''+bk.replace(/'/g,"\\'")+'\']=Number(el.value)||0;}})(this)"/>'+
             '</div>'+
             '<div><div style="font-size:12px;color:#0a4a62;font-weight:600;margin-bottom:4px">'+(bPrev?'תשפ״ו: '+bPrev:'')+'</div>'+
               '<input type="number" min="0" id="'+bId+'" placeholder="כמות..." value="'+bSaved+'" '+
               'style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:4px;padding:4px 6px;font-size:13px;font-weight:600;color:var(--accent);outline:none" '+
-              'oninput="(function(){if(pendingOrder){if(!pendingOrder._booklet)pendingOrder._booklet={};pendingOrder._booklet[\''+bk.replace(/'/g,"\\'")+'\']=Number(this.value)||0;}})()"/>'+
+              'oninput="(function(el){if(pendingOrder){if(!pendingOrder._booklet)pendingOrder._booklet={};pendingOrder._booklet[\''+bk.replace(/'/g,"\\'")+'\']=Number(el.value)||0;}})(this)"/>'+
             '</div>'+
           '</div>';
         }).join('');
@@ -1929,8 +1929,6 @@ async function approveOrder(){
   btn.textContent='⏳ שומר...'; btn.disabled=true;
 
   // Calculate gaps vs previous year
-  console.log('DEBUG pendingOrder._guide:', JSON.stringify(pendingOrder._guide));
-  console.log('DEBUG pendingOrder._booklet:', JSON.stringify(pendingOrder._booklet));
   const gaps = calcGaps(pendingOrder.books || [], pendingOrder.school);
   pendingOrder.gaps = gaps.map(g=>g.text).join(' | ');
   pendingOrder.gapType = gaps[0]?.type || '';
