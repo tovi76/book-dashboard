@@ -983,27 +983,24 @@ function openCard(encoded){
     const sup=isSup(r), paid=isPaid(r);
     return`<div class="cc-yr">
       <div class="cc-yrtitle">📅 ${year}
-        ${isCurrent?`<span class="badge ${sup?'b-yes':'b-no'}" id="ccSupBadge" style="margin-right:8px;cursor:pointer;border:2px solid ${sup?'#1a6b35':'#e0509a'}" onclick="toggleSupply('${name.replace(/'/g,"\\'")}', ${sup}, '${year}')" title="לחצי לשינוי סטטוס אספקה">${sup?'✅ סופק (לחצי לביטול)':'⏳ לא סופק (לחצי לסימון)'}</span>`:''}
+        ${isCurrent?`<span class="badge ${sup?'b-yes':'b-no'}" id="ccSupBadge" style="margin-right:8px;cursor:pointer;border:2px solid ${sup?'#1a6b35':'#e0509a'}" onclick="toggleSupply('${name.replace(/'/g,"\\'")}', ${sup}, '${year.replace(/"/g,'&quot;')}')" title="לחצי לשינוי סטטוס אספקה">${sup?'✅ סופק (לחצי לביטול)':'⏳ לא סופק (לחצי לסימון)'}</span>`:''}
         ${isCurrent?`<span class="badge ${paid?'b-paid':'b-no'}">${paid?'💜 שולם':'💳 לא שולם'}</span>`:''}
       </div>
       <div class="cc-yrgrid">
         ${books.map(b=>`<div class="cc-yritem"><div class="cc-yrbook">${b}</div><div class="cc-yrqty">${bqty(r,b)}</div></div>`).join('')||'<div style="color:var(--muted);font-size:12px">אין הזמנה</div>'}
       </div>
-      ${isCurrent?`<div style="border:1px solid #2aa0c8;border-radius:8px;padding:10px 14px;margin-top:12px;background:#eef8fc">
+      ${isCurrent&&(String(r[C.guide]||'').trim()||String(r[C.booklet]||'').trim())?`<div style="border:1px solid #2aa0c8;border-radius:8px;padding:10px 14px;margin-top:12px;background:#eef8fc">
         <div style="font-size:11px;font-weight:700;color:#0a4a62;margin-bottom:8px">📚 מדריך וחוברת למורה — ${year}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div>
+          ${String(r[C.guide]||'').trim()?`<div>
             <div style="font-size:10px;color:var(--dim);margin-bottom:3px">מדריך למורה</div>
-            <input id="ccGuideInput" value="${String(r[C.guide]||'').replace(/"/g,'&quot;')}" placeholder="לדוגמה: ברוכה הבאה ה - 2"
-              style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
-          </div>
-          <div>
+            <div style="font-size:13px;font-weight:600;color:#0a4a62">${String(r[C.guide]).trim()}</div>
+          </div>`:''}
+          ${String(r[C.booklet]||'').trim()?`<div>
             <div style="font-size:10px;color:var(--dim);margin-bottom:3px">חוברת למורה</div>
-            <input id="ccBookletInput" value="${String(r[C.booklet]||'').replace(/"/g,'&quot;')}" placeholder="לדוגמה: ברוכה הבאה ו - 2"
-              style="width:100%;background:var(--surface);border:1px solid #2aa0c8;border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
-          </div>
+            <div style="font-size:13px;font-weight:600;color:#0a4a62">${String(r[C.booklet]).trim()}</div>
+          </div>`:''}
         </div>
-        <button onclick="saveGuideBooklet('${name.replace(/'/g,"\\'")}', '${year}')" style="margin-top:8px;padding:6px 14px;background:#2aa0c8;color:#fff;border:none;border-radius:6px;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;cursor:pointer">💾 שמור</button>
       </div>`:''}
       ${isCurrent&&r[C.notes]?`<div class="cc-notes">💬 ${r[C.notes]}</div>`:''}
       ${isCurrent&&r[C.gaps]?`<div class="cc-notes" style="background:#fffbec;border:1px solid #f5e0a0">⚠️ פערים: ${r[C.gaps]}</div>`:''}
@@ -1050,35 +1047,6 @@ function closeCard(){
   document.body.style.overflow='';
 }
 
-async function saveGuideBooklet(schoolName, year){
-  const guideEl = document.getElementById('ccGuideInput');
-  const bookletEl = document.getElementById('ccBookletInput');
-  const guide = guideEl ? guideEl.value.trim() : '';
-  const booklet = bookletEl ? bookletEl.value.trim() : '';
-
-  try {
-    const res = await fetch(CONFIG.SAVE_WEBHOOK, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        action: 'updateGuideBooklet',
-        school: schoolName,
-        year: year.replace(/"/g,''),
-        guide, booklet,
-      })
-    });
-    if(res.ok){
-      const rows = D[year]||[];
-      const row = rows.find(r=>String(r[C.name]||'').trim()===schoolName);
-      if(row){ row[C.guide]=guide; row[C.booklet]=booklet; }
-      showToastMsg('✅ מדריך וחוברת למורה נשמרו');
-    } else {
-      showToastMsg('❌ שגיאה בשמירה — נסי שוב');
-    }
-  } catch(e){
-    showToastMsg('❌ שגיאה: '+e.message);
-  }
-}
-
 async function toggleSupply(schoolName, currentlySupplied, year){
   const newVal = !currentlySupplied;
   const badge = document.getElementById('ccSupBadge');
@@ -1095,7 +1063,7 @@ async function toggleSupply(schoolName, currentlySupplied, year){
       })
     });
     if(res.ok){
-      // עדכון מקומי מיידי
+      // עדכון מקומי מיידי — year כאן הוא ה-label המלא (עם גרשיים) כפי שמופיע ב-D
       const rows = D[year]||[];
       const row = rows.find(r=>String(r[C.name]||'').trim()===schoolName);
       if(row) row[C.supply] = newVal ? 'כן' : 'לא';
