@@ -1333,7 +1333,7 @@ function filterManualSchool(q){
   const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
   dd.innerHTML = filtered.map((c,i)=>{
     const safe = c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return `<div onclick="pickManualSchool('${safe}')" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`;
+    return `<div onmousedown="event.preventDefault();pickManualSchool('${safe}')" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`;
   }).join('');
   dd.style.display = filtered.length ? 'block' : 'none';
 }
@@ -2104,7 +2104,7 @@ function showUploadStatus(type, msg){
         <input id="manualSchoolInput" placeholder="חיפוש בית ספר..." autocomplete="off"
           oninput="filterManualSchool(this.value)" onfocus="filterManualSchool(this.value)"
           style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none"/>
-        <div id="manualSchoolDD" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;z-index:99;box-shadow:0 8px 24px rgba(0,0,0,.12)"></div>
+        <div id="manualSchoolDD" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:160px;overflow-y:auto;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.12)"></div>
       </div>
       <div id="manualSchoolChosen" style="margin-top:6px;font-size:13px;font-weight:600;color:var(--accent)"></div>
     </div>
