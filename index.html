@@ -984,7 +984,7 @@ function openCard(encoded){
     const guides = Math.ceil(BOOKS.reduce((s,b)=>s+bqty(r,b),0)/40);
     return`<div class="cc-yr">
       <div class="cc-yrtitle">📅 ${year}
-        ${isCurrent?`<span class="badge ${sup?'b-yes':'b-no'}" style="margin-right:8px">${sup?'✅ סופק':'⏳ לא סופק'}</span>`:''}
+        ${isCurrent?`<span class="badge ${sup?'b-yes':'b-no'}" id="ccSupBadge" style="margin-right:8px;cursor:pointer" onclick="toggleSupply('${name.replace(/'/g,"\\'")}', ${sup}, '${year}')" title="לחצי לשינוי סטטוס אספקה">${sup?'✅ סופק':'⏳ לא סופק — לחצי לסימון'}</span>`:''}
         ${isCurrent?`<span class="badge ${paid?'b-paid':'b-no'}">${paid?'💜 שולם':'💳 לא שולם'}</span>`:''}
         ${isCurrent&&guides>0?`<span style="font-size:11px;color:var(--gold);margin-right:8px;font-weight:600">📚 ${guides} מדריכים</span>`:''}
       </div>
@@ -1034,6 +1034,39 @@ function openCard(encoded){
 function closeCard(){
   document.getElementById('clientCard').classList.remove('open');
   document.body.style.overflow='';
+}
+
+async function toggleSupply(schoolName, currentlySupplied, year){
+  const newVal = !currentlySupplied;
+  const badge = document.getElementById('ccSupBadge');
+  if(badge){ badge.textContent='⏳ מעדכן...'; badge.style.pointerEvents='none'; }
+
+  try {
+    const res = await fetch(CONFIG.SAVE_WEBHOOK, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action: 'updateSupply',
+        school: schoolName,
+        year: year.replace(/"/g,''),
+        supply: newVal ? 'כן' : 'לא',
+      })
+    });
+    if(res.ok){
+      // עדכון מקומי מיידי
+      const rows = D[year]||[];
+      const row = rows.find(r=>String(r[C.name]||'').trim()===schoolName);
+      if(row) row[C.supply] = newVal ? 'כן' : 'לא';
+      showToastMsg(newVal ? '✅ סומן כסופק' : '⏳ סומן כלא סופק');
+      openCard(encodeURIComponent(schoolName)); // רענון הכרטיס
+      render(); // רענון הדשבורד
+    } else {
+      showToastMsg('❌ שגיאה בעדכון — נסי שוב');
+      if(badge){ badge.style.pointerEvents=''; }
+    }
+  } catch(e){
+    showToastMsg('❌ שגיאה: '+e.message);
+    if(badge){ badge.style.pointerEvents=''; }
+  }
 }
 
 let _manualSchool = '';
