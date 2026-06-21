@@ -1452,7 +1452,7 @@ function filterSchoolList(q) {
   const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
   dd.innerHTML = filtered.map((c,i)=>{
     const safe = c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return `<div class="sditem" data-name="${c.replace(/"/g,'&quot;')}" onclick="selectSchoolByIndex(${i})" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`;
+    return `<div class="sditem" data-name="${c.replace(/"/g,'&quot;')}" onmousedown="event.preventDefault();selectSchoolByIndex(${i})" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">${c}</div>`;
   }).join('');
   dd.style.display = filtered.length ? 'block' : 'none';
 }
@@ -1681,6 +1681,16 @@ async function processPDF(file){
   }
 }
 
+function addMissingBook(){
+  const sel = document.getElementById('pdfAddBookSelect');
+  if (!sel || !sel.value || !pendingOrder) return;
+  if (!pendingOrder.books) pendingOrder.books = [];
+  if (!pendingOrder.books.find(b => b.name === sel.value)) {
+    pendingOrder.books.push({ name: sel.value, qty: 0 });
+  }
+  showPreview(pendingOrder);
+}
+
 function showPreview(data){
   const card = document.getElementById('previewCard');
   const content = document.getElementById('previewContent');
@@ -1697,13 +1707,13 @@ function showPreview(data){
     ? calcGaps(data.books || [], data.school)
     : [];
 
-  const booksHtml = books.length ? `
+  const booksHtml = `
     <div style="margin-top:12px">
       <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">
         ספרים שהוזמנו
         ${prevRow ? `<span style="font-weight:400;color:var(--muted)"> — השוואה ל${prevYear}</span>` : '<span style="font-weight:400;color:var(--muted)"> (אין נתוני השוואה)</span>'}
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
+      <div id="pdfBooksGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
         ${(() => {
           // All books to show: ordered this year + those dropped from last year
           const allBooks = [...books];
@@ -1716,7 +1726,7 @@ function showPreview(data){
               }
             }
           }
-          return allBooks.map(b => {
+          return allBooks.length ? allBooks.map(b => {
             const prevQty = prevRow ? (Number(prevRow[b.name]) || 0) : null;
             const diff = prevQty !== null ? b.qty - prevQty : null;
             // Card background based on gap type
@@ -1742,14 +1752,27 @@ function showPreview(data){
                 ? `<div style="font-size:20px;font-weight:900;color:#1a5f72">—</div><div style="font-size:11px;color:#1a5f72;margin-top:2px">היה ${prevQty} — הורד</div>`
                 : `<input type="number" min="0" id="${_bsid}" value="${b.qty}"
                      oninput="(function(el){const f=(pendingOrder.books||[]).find(x=>x.name==='${b.name.replace(/'/g,"\\'")}');if(f)f.qty=Number(el.value)||0;})(this)"
+                     onblur="showPreview(pendingOrder)"
                      style="width:100%;text-align:center;font-size:18px;font-weight:900;color:var(--accent);background:transparent;border:none;border-bottom:2px solid var(--accent);outline:none;padding:2px 0;margin-bottom:4px"/>
                    ${prevQty !== null ? `<div style="font-size:11px;color:${diffColor};margin-top:2px">${diffText}${prevQty>0?' ('+prevYear+': '+prevQty+')':''}</div>` : ''}`
               }
             </div>`;
-          }).join('');
+          }).join('') : '<div style="grid-column:1/-1;color:var(--muted);font-size:13px">לא זוהו ספרים — הוסיפי ידנית למטה</div>';
         })()}
       </div>
-    </div>` : '<div style="color:var(--muted);font-size:13px;margin-top:12px">לא זוהו ספרים — בדקי ידנית</div>';
+      ${(()=>{
+        const orderedNames = books.map(b=>b.name);
+        const missing = BOOKS.filter(b=>!orderedNames.includes(b));
+        if(!missing.length) return '';
+        return `<div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+          <select id="pdfAddBookSelect" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text)">
+            <option value="">+ הוסיפי ספר שלא זוהה...</option>
+            ${missing.map(b=>`<option value="${b.replace(/"/g,'&quot;')}">${b}</option>`).join('')}
+          </select>
+          <button onclick="addMissingBook()" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;cursor:pointer">הוסף</button>
+        </div>`;
+      })()}
+    </div>`;
 
   const clientList = [...new Set(
     Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean)
