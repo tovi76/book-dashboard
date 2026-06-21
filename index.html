@@ -45,6 +45,9 @@ main{padding:24px 28px;max-width:1400px;margin:0 auto}
 .page{display:none}.page.on{display:block}
 /* When split view is active, upload page breaks out of main constraints */
 body.split-active main{max-width:100%;padding:0}
+/* Clients page: let the table use the full available width */
+main:has(#pg-clients.on){max-width:100%}
+main.wide{max-width:100%}
 
 /* ── Error ── */
 .err{background:#fdf0ef;border:1px solid #f0c0bc;border-radius:10px;padding:12px 16px;color:var(--danger);font-size:13px;margin-bottom:18px;display:none}
@@ -294,6 +297,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
     <div class="fbar">
       <input class="fi" id="fs" placeholder="🔍 חיפוש שם / עיר..." oninput="ft()"/>
       <select class="fs" id="fci" onchange="ft()"><option value="">כל הערים</option></select>
+      <select class="fs" id="forg" onchange="ft()"><option value="">כל הארגונים</option></select>
       <select class="fs" id="fsu" onchange="ft()">
         <option value="">כל הסטטוסים</option>
         <option value="yes">✅ סופק</option>
@@ -875,6 +879,9 @@ function renderClientsTab(rows){
   const cities=[...new Set(rows.map(r=>String(r[C.city]||'').trim()).filter(Boolean))].sort();
   const cf=document.getElementById('fci'), cv=cf.value;
   cf.innerHTML='<option value="">כל הערים</option>'+cities.map(c=>`<option value="${c}" ${c===cv?'selected':''}>${c}</option>`).join('');
+  const orgs=[...new Set(rows.map(r=>String(r[C.org]||'').trim()).filter(Boolean))].sort();
+  const of_=document.getElementById('forg'), ov=of_.value;
+  of_.innerHTML='<option value="">כל הארגונים</option>'+orgs.map(o=>`<option value="${o}" ${o===ov?'selected':''}>${o}</option>`).join('');
   const bf=document.getElementById('fbk'), bv=bf.value;
   bf.innerHTML='<option value="">כל הספרים</option>'+BOOKS.map(b=>`<option value="${b}" ${b===bv?'selected':''}>${b}</option>`).join('');
   _trows=rows; ft();
@@ -883,10 +890,12 @@ function renderClientsTab(rows){
 function ft(){
   const rows=_trows, q=(document.getElementById('fs').value||'').toLowerCase();
   const city=document.getElementById('fci').value, sup=document.getElementById('fsu').value;
+  const org=document.getElementById('forg').value;
   const book=document.getElementById('fbk').value, pay=document.getElementById('fpy').value;
   const f=rows.filter(r=>{
     if(q&&!String(r[C.name]||'').toLowerCase().includes(q)&&!String(r[C.city]||'').toLowerCase().includes(q))return false;
     if(city&&String(r[C.city]||'').trim()!==city)return false;
+    if(org&&String(r[C.org]||'').trim()!==org)return false;
     if(sup==='yes'&&!isSup(r))return false;
     if(sup==='no'&&isSup(r))return false;
     if(book&&!(bqty(r,book)>0))return false;
@@ -1445,6 +1454,7 @@ document.querySelectorAll('.nv').forEach(b=>{
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
     b.classList.add('on');
     document.getElementById('pg-'+b.dataset.page).classList.add('on');
+    document.querySelector('main').classList.toggle('wide', b.dataset.page==='clients');
   };
 });
 
