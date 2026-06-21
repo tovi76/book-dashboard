@@ -442,7 +442,7 @@ const C = {
   phone:'מס פלאפון', pay:'תשלום', paytype:'אופן התשלום',
   invoice:'חשבונית על שם', sample:'חוברות לדוגמא',
   guide:'מדריך למורה', booklet:'חוברת למורה', target:'כתובת יעד',
-  school:'בת ספר',
+  school:'בת ספר', org:'ארגון ספרי הלימוד',
 };
 
 // ══ STATE ══
@@ -901,11 +901,12 @@ function ft(){
       tr.onclick = () => openCard(tr.dataset.name);
     });
   }, 0);
-  const cols=[C.name,C.city,...BOOKS,C.supply,C.pay,C.boxes,C.ship,C.notes];
+  const cols=[C.name,C.org,C.city,...BOOKS,C.supply,C.pay,C.boxes,C.ship,C.notes];
   document.getElementById('th').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
   document.getElementById('tb').innerHTML=f.map(r=>`<tr data-name="${encodeURIComponent(String(r[C.name]||'').trim())}" class="clickrow">`+cols.map(c=>{
     const v=r[c]??'';
     if(c===C.name)return`<td><span class="tn">${v||'—'}</span></td>`;
+    if(c===C.org)return`<td><span class="badge" style="background:var(--badge-bg,#eef2ff);color:var(--accent);border:1px solid var(--accent3)">${v||'פרטי'}</span></td>`;
     if(c===C.supply)return`<td><span class="badge ${isSup(r)?'b-yes':'b-no'}">${v||'—'}</span></td>`;
     if(c===C.pay)return`<td><span class="badge ${isPaid(r)?'b-paid':'b-no'}">${v||'—'}</span></td>`;
     if(BOOKS.includes(c)){const bq=bqty(r,c);return`<td style="text-align:center;font-weight:${bq>0?700:400};color:${bq>0?'var(--accent)':'var(--dim)'}">${bq>0?bq:'—'}</td>`;}
@@ -983,6 +984,7 @@ function openCard(encoded){
 
   // Meta
   const meta=[
+    {l:'ארגון',v:latest[C.org]||'פרטי'},
     {l:'עיר',v:latest[C.city]},
     {l:'כתובת',v:latest[C.target]},
     {l:'איש קשר',v:latest[C.contact]},
