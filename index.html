@@ -115,9 +115,9 @@ body.split-active main{max-width:100%;padding:0}
 .fcnt{font-size:12px;color:var(--muted);white-space:nowrap}
 
 /* ── Table ── */
-.twrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+.twrap{overflow-x:auto;overflow-y:auto;max-height:70vh;border-radius:10px;border:1px solid var(--border)}
 table{width:100%;border-collapse:collapse;font-size:12px}
-th{background:var(--surface2);padding:9px 11px;text-align:right;font-weight:600;font-size:10px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
+th{background:var(--surface2);padding:9px 11px;text-align:right;font-weight:600;font-size:10px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:5}
 td{padding:9px 11px;border-bottom:1px solid var(--border);color:var(--text);white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--surface2);cursor:pointer}
@@ -743,11 +743,14 @@ function bqty(r,b){
   // נסה את השם המדויק קודם
   let v = Number(r[b]) || 0;
   if (v) return v;
-  // נרמל גרשיים בשם החיפוש (כל הווריאציות: ' ’ ׳ `) להשוואה גמישה מול עמודות השיטס
+  // נרמל את שם החיפוש לשתי צורות: עם גרש סטנדרטי, ובלי גרש כלל
   const normKey = b.replace(/[''`׳’‘]/g, "'");
+  const strippedKey = b.replace(/[''`׳’‘]/g, "");
   for (const col in r) {
-    const normCol = String(col).replace(/[''`׳’‘]/g, "'");
-    if (normCol === normKey) {
+    const colStr = String(col);
+    const normCol = colStr.replace(/[''`׳’‘]/g, "'");
+    const strippedCol = colStr.replace(/[''`׳’‘]/g, "");
+    if (normCol === normKey || strippedCol === strippedKey) {
       v = Number(r[col]) || 0;
       if (v) return v;
     }
