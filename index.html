@@ -1120,8 +1120,14 @@ function closeManual(){
 }
 
 async function saveManualOrder(){
+  // אם לא נבחר בית ספר מהרשימה (כי זה בית ספר חדש), קח את הטקסט שהוקלד בשדה החיפוש
   if(!_manualSchool){
-    showToastMsg('❌ יש לבחור בית ספר קודם');
+    const inputEl = document.getElementById('manualSchoolInput');
+    const typed = inputEl ? inputEl.value.trim() : '';
+    if(typed) _manualSchool = typed;
+  }
+  if(!_manualSchool){
+    showToastMsg('❌ יש לבחור או להקליד שם בית ספר');
     return;
   }
 
@@ -1879,7 +1885,13 @@ function showPreview(data){
   // Attach school search events AFTER innerHTML is written
   const schoolSearchEl = document.getElementById('schoolSearch');
   if (schoolSearchEl) {
-    schoolSearchEl.addEventListener('input', function(){ filterSchoolList(this.value); });
+    schoolSearchEl.addEventListener('input', function(){
+      filterSchoolList(this.value);
+      // עדכן גם את שדה שם בית הספר העליון + pendingOrder, כדי שגם שם חדש (לא ברשימה) יישמר
+      const editEl = document.getElementById('schoolEdit');
+      if (editEl) editEl.value = this.value;
+      if (pendingOrder) pendingOrder.school = this.value;
+    });
     schoolSearchEl.addEventListener('focus', function(){ filterSchoolList(this.value); });
     addKeyboardNav('schoolSearch','schoolDropdown', name=>{
       const el = document.getElementById('schoolEdit');
