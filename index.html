@@ -1161,8 +1161,9 @@ async function saveManualOrder(){
 
   const booksArr = BOOKS.map(b=>({name:b, qty:Number(books[b])||0}));
   const gaps = calcGaps(booksArr, _manualSchool);
-  const gapsText = gaps.map(g=>g.text).join(' | ');
-  const gapType = gaps[0]?.type || '';
+  const sheetGaps = gaps.filter(g => g.type !== 'qty_change');
+  const gapsText = sheetGaps.map(g=>g.text).join(' | ');
+  const gapType = sheetGaps[0]?.type || '';
 
   const payload = {
     action:  'save',
@@ -1311,9 +1312,10 @@ function addKeyboardNav(inputId, ddId, pickFn){
     } else if(e.key==='ArrowUp'){
       e.preventDefault();
       idx = Math.max(idx-1, 0);
-    } else if(e.key==='Enter' && idx>=0){
+    } else if(e.key==='Enter'){
       e.preventDefault();
-      items[idx].click();
+      const chosen = idx>=0 ? idx : 0; // אם לא נבחר עם חיצים, בחר את הראשון ברשימה
+      items[chosen].dispatchEvent(new MouseEvent('mousedown', {bubbles:true, cancelable:true}));
       idx=-1; return;
     } else if(e.key==='Escape'){
       dd.style.display='none'; idx=-1; return;
@@ -1512,7 +1514,7 @@ function parsePDFText(raw) {
 
   if (schoolLine) {
     // Extract raw school name — user confirms in preview
-    const afterMarker = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[,\s]+/, '').trim();
+    const afterMarker = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[:,\s]+/, '').trim();
     const rawMatch = afterMarker.match(/^(.+?)(?:\s*,|\s+\d{7,}|\s+טלפון|$)/);
     school = rawMatch ? rawMatch[1].replace(/\s+\d+$/, '').trim() : afterMarker.split(',')[0].trim();
   }
@@ -1574,7 +1576,10 @@ function parsePDFText(raw) {
   let contact = '';
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes('ליצירת קשר') && !lines[i].includes('טלפון')) {
-      if (lines[i+1]) contact = lines[i+1].trim();
+      if (lines[i+1]) {
+        // הסר מספרי טלפון מהשורה — להשאיר רק את השם
+        contact = lines[i+1].replace(/[\d\-\s]{6,}/g, '').trim();
+      }
       break;
     }
   }
@@ -1974,8 +1979,9 @@ async function approveOrder(){
 
   // Calculate gaps vs previous year
   const gaps = calcGaps(pendingOrder.books || [], pendingOrder.school);
-  pendingOrder.gaps = gaps.map(g=>g.text).join(' | ');
-  pendingOrder.gapType = gaps[0]?.type || '';
+  const sheetGaps = gaps.filter(g => g.type !== 'qty_change');
+  pendingOrder.gaps = sheetGaps.map(g=>g.text).join(' | ');
+  pendingOrder.gapType = sheetGaps[0]?.type || '';
 
   // Build payload for Make/Google Sheets
   const payload = {
