@@ -700,6 +700,8 @@ async function init(){
   }
   updYbtns(); render(); hideLoader();
   loadReminders(); loadInventory();
+  const mm = document.getElementById('missingModal');
+  if(mm) mm.addEventListener('click', e => { if(e.target===e.currentTarget) closeMissingModal(); });
 }
 
 // ── Hebrew year names ──
@@ -886,7 +888,7 @@ function closeMissingModal() {
   document.getElementById('missingModal').style.display = 'none';
   document.body.style.overflow = '';
 }
-document.getElementById('missingModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeMissingModal(); });
+// missingModal listener נוסף ב-init לאחר טעינת ה-DOM
 
 // ── Bars ──
 function renderBars(rows,prev){
