@@ -1475,8 +1475,12 @@ function showToastMsg(msg){
   t.textContent=msg; t.style.opacity='1';
   setTimeout(()=>t.style.opacity='0', 3500);
 }
-document.getElementById('clientCard').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCard();});
-document.getElementById('supplyModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSupplyModal();});
+document.addEventListener('DOMContentLoaded', () => {
+  const cc = document.getElementById('clientCard');
+  if(cc) cc.addEventListener('click',e=>{if(e.target===e.currentTarget)closeCard();});
+  const sm = document.getElementById('supplyModal');
+  if(sm) sm.addEventListener('click',e=>{if(e.target===e.currentTarget)closeSupplyModal();});
+});
 
 // ══ NAV ══
 document.querySelectorAll('.nv').forEach(b=>{
