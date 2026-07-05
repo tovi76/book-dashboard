@@ -847,6 +847,23 @@ function openMissingModal() {
             <th style="padding:9px 12px;text-align:center;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">סה"כ</th>
           </tr>
         </thead>
+        <thead>
+          <tr style="background:#fff8f0;border-bottom:2px solid #c9813a">
+            <td colspan="3" style="padding:10px 12px;font-weight:700;font-size:12px;color:#7a4a00">סה"כ משוער</td>
+            ${booksWithQty.map(b=>{
+              const sum = missing.reduce((s,r)=>s+bqty(r,b),0);
+              return `<td style="padding:10px 12px;text-align:center;font-weight:800;font-size:13px;color:#c9813a">${sum||'—'}</td>`;
+            }).join('')}
+            <td style="padding:10px 12px;text-align:center;font-weight:900;font-size:15px;color:#c9813a">${totalBooks.toLocaleString()}</td>
+          </tr>
+          <tr style="background:var(--surface2)">
+            <th style="padding:9px 12px;text-align:right;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">שם המוסד</th>
+            <th style="padding:9px 12px;text-align:right;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">עיר</th>
+            <th style="padding:9px 12px;text-align:right;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">אחראי</th>
+            ${booksWithQty.map(b=>`<th style="padding:9px 12px;text-align:center;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">${b}</th>`).join('')}
+            <th style="padding:9px 12px;text-align:center;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">סה"כ</th>
+          </tr>
+        </thead>
         <tbody>
           ${missing.map((r,i)=>{
             const total = BOOKS.reduce((s,b)=>s+bqty(r,b),0);
@@ -866,16 +883,6 @@ function openMissingModal() {
             </tr>`;
           }).join('')}
         </tbody>
-        <tfoot>
-          <tr style="background:#fff8f0">
-            <td colspan="3" style="padding:10px 12px;font-weight:700;font-size:12px;color:#7a4a00">סה"כ משוער</td>
-            ${booksWithQty.map(b=>{
-              const sum = missing.reduce((s,r)=>s+bqty(r,b),0);
-              return `<td style="padding:10px 12px;text-align:center;font-weight:700;color:#c9813a">${sum||'—'}</td>`;
-            }).join('')}
-            <td style="padding:10px 12px;text-align:center;font-weight:900;font-size:14px;color:#c9813a">${totalBooks.toLocaleString()}</td>
-          </tr>
-        </tfoot>
       </table>
     </div>
   ` : '<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px">🎉 כל בתי הספר מתשפ"ו כבר הזמינו!</div>';
