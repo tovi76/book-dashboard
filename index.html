@@ -14,6 +14,9 @@
   --text:#1a1a14;--muted:#6b6856;--dim:#aaa898;
   --danger:#b94040;--radius:14px;
   --new-client:#3b6fd4;--new-book:#c9a84c;
+  /* אחראי */
+  --tovi-bg:#eef2ff;--tovi-border:#c0cdf7;--tovi-text:#2d4fa0;
+  --alisheva-bg:#fff0f6;--alisheva-border:#f4b8d4;--alisheva-text:#8b1a5a;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
@@ -43,9 +46,7 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 /* ── Main ── */
 main{padding:24px 28px;max-width:1400px;margin:0 auto}
 .page{display:none}.page.on{display:block}
-/* When split view is active, upload page breaks out of main constraints */
 body.split-active main{max-width:100%;padding:0}
-/* Clients page: let the table use the full available width */
 main:has(#pg-clients.on){max-width:100%}
 main.wide{max-width:100%}
 
@@ -126,6 +127,12 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--surface2);cursor:pointer}
 .tn{font-weight:600;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 
+/* ── שורות לפי אחראי ── */
+tr.row-tovi td { background: #f5f7ff; }
+tr.row-tovi:hover td { background: #e8edff; }
+tr.row-alisheva td { background: #fff5f9; }
+tr.row-alisheva:hover td { background: #ffe8f3; }
+
 /* ── Badges ── */
 .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap}
 .b-yes{background:#e6f4ec;color:#1a6b35;border:1px solid #b7ddc6}
@@ -133,6 +140,8 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 .b-paid{background:#f0e6ff;color:#5a2d82;border:1px solid #d4b3f5}
 .b-new{background:#eef2ff;color:#2d4fa0;border:1px solid #c0cdf7}
 .b-danger{background:#fdf0ef;color:var(--danger);border:1px solid #f0c0bc}
+.b-tovi{background:var(--tovi-bg);color:var(--tovi-text);border:1px solid var(--tovi-border)}
+.b-alisheva{background:var(--alisheva-bg);color:var(--alisheva-text);border:1px solid var(--alisheva-border)}
 
 /* ── Compare ── */
 .cmpg{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
@@ -169,6 +178,18 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 .cc-notes{background:var(--surface2);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;margin-top:12px}
 .cc-status{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 
+/* ── Supply confirm modal ── */
+#supplyModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
+#supplyModal.open{display:flex}
+.sm-box{background:var(--surface);border-radius:16px;padding:28px;max-width:420px;width:100%;box-shadow:0 24px 80px rgba(0,0,0,.3)}
+.sm-title{font-size:17px;font-weight:700;margin-bottom:6px}
+.sm-sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+.sm-field{margin-bottom:14px}
+.sm-lbl{font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sm-inp{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-family:'Heebo',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border-color .2s}
+.sm-inp:focus{border-color:var(--accent)}
+.sm-btns{display:flex;gap:10px;margin-top:20px}
+
 /* ── Boxes info ── */
 .boxinfo{font-size:13px;line-height:1.8}
 .birow{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px}
@@ -183,7 +204,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 /* ── Split view ── */
 #splitView{
   display:flex;
-  flex-direction:row; /* PDF right, form left */
+  flex-direction:row;
   height:calc(100vh - 108px);
   overflow:hidden;
 }
@@ -267,16 +288,12 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         <div class="slist" id="slist"></div>
       </div>
     </div>
-    <div class="g21">
-
-
-    </div>
+    <div class="g21"></div>
     <div class="g2">
       <div class="card">
         <div class="ctitle">⏳ לא סופקו עדיין</div>
         <div class="alist" id="nslist"></div>
       </div>
-      <!-- תזכורות -->
       <div class="card">
         <div class="ctitle">📌 תזכורות
           <span style="font-size:11px;color:var(--muted);font-weight:400">— נערכות ישירות בשיטס</span>
@@ -286,10 +303,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         </div>
       </div>
     </div>
-    <div class="g2">
-
-
-    </div>
+    <div class="g2"></div>
   </div>
 
   <!-- ══ CLIENTS ══ -->
@@ -309,8 +323,28 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         <option value="paid">💜 שולם</option>
         <option value="notpaid">⏳ לא שולם</option>
       </select>
+      <!-- ★ NEW: פילטר אחראי -->
+      <select class="fs" id="fresp" onchange="ft()">
+        <option value="">כל האחראים</option>
+        <option value="טובי">💙 טובי</option>
+        <option value="אלישבע">🩷 אלישבע</option>
+      </select>
       <span class="fcnt" id="fcnt"></span>
     </div>
+
+    <!-- ★ NEW: מקרא צבעים -->
+    <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;font-size:11px;color:var(--muted)">
+      <span style="font-weight:600">מקרא:</span>
+      <span style="background:#f5f7ff;border:1px solid var(--tovi-border);border-radius:6px;padding:2px 10px;color:var(--tovi-text);font-weight:600">💙 טובי</span>
+      <span style="background:#fff5f9;border:1px solid var(--alisheva-border);border-radius:6px;padding:2px 10px;color:var(--alisheva-text);font-weight:600">🩷 אלישבע</span>
+      <span style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 10px">ללא הגדרה</span>
+      <span style="margin-right:auto">
+        <span style="background:#e6f4ec;border:1px solid #b7ddc6;border-radius:6px;padding:2px 10px;color:#1a6b35;font-weight:600">✅ סופק</span>
+        &nbsp;
+        <span style="background:#fffbec;border:1px solid #f5e0a0;border-radius:6px;padding:2px 10px;color:#7a5c00;font-weight:600">⏳ ממתין</span>
+      </span>
+    </div>
+
     <div class="twrap">
       <table><thead id="th"></thead><tbody id="tb"></tbody></table>
     </div>
@@ -330,7 +364,6 @@ tr:hover td{background:var(--surface2);cursor:pointer}
 
   <!-- ══ ALERTS ══ -->
   <div class="page" id="pg-alerts">
-    <!-- מלאי -->
     <div class="card" style="margin-bottom:16px">
       <div class="ctitle">📦 מלאי ספרים
         <span style="font-size:11px;color:var(--muted);font-weight:400">— מעודכן מגיליון "מלאי" בשיטס</span>
@@ -351,9 +384,9 @@ tr:hover td{background:var(--surface2);cursor:pointer}
       </div>
     </div>
   </div>
+
   <!-- ══ UPLOAD ══ -->
   <div class="page on" id="pg-upload">
-    <!-- Upload area (shown before PDF loaded) -->
     <div id="uploadArea" style="max-width:560px;margin:0 auto">
       <div class="card" style="margin-bottom:16px">
         <div class="ctitle">📄 העלאת טופס הזמנה</div>
@@ -364,7 +397,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         <button onclick="openManualStandalone()" style="width:100%;padding:11px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;margin-bottom:16px;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
           ✏️ הוספת הזמנה ידנית (ללא PDF)
         </button>
-        <div id="dropzone" onclick="document.getElementById('pdfInput').click()" 
+        <div id="dropzone" onclick="document.getElementById('pdfInput').click()"
           style="border:2px dashed var(--border);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)">
           <div style="font-size:36px;margin-bottom:10px">📄</div>
           <div style="font-size:14px;font-weight:600;margin-bottom:6px">לחצי להעלאת PDF</div>
@@ -375,9 +408,7 @@ tr:hover td{background:var(--surface2);cursor:pointer}
       </div>
     </div>
 
-    <!-- Split view (shown after PDF loaded) -->
     <div id="splitView" style="display:none">
-      <!-- Right: original PDF - full panel, no card -->
       <div id="pdfViewerPanel">
         <div class="pdf-toolbar">
           <span>📄 הקובץ המקורי</span>
@@ -385,7 +416,6 @@ tr:hover td{background:var(--surface2);cursor:pointer}
         </div>
         <iframe id="pdfFrame"></iframe>
       </div>
-      <!-- Left: preview + approve, scrollable -->
       <div id="splitRightPanel">
         <div class="card" style="margin-bottom:16px">
           <div class="ctitle" style="margin-bottom:8px">📤 העלאה נוספת
@@ -428,16 +458,35 @@ tr:hover td{background:var(--surface2);cursor:pointer}
   </div>
 </div>
 
+<!-- ══ SUPPLY CONFIRM MODAL ★ NEW ══ -->
+<div id="supplyModal">
+  <div class="sm-box">
+    <div class="sm-title" id="smTitle">✅ סימון כסופק</div>
+    <div class="sm-sub" id="smSub">מלאי את פרטי המשלוח לפני האישור</div>
+    <div class="sm-field">
+      <div class="sm-lbl">🚚 חברת שליחויות</div>
+      <input class="sm-inp" id="smCourier" placeholder="שם חברת השליחויות..."/>
+    </div>
+    <div class="sm-field">
+      <div class="sm-lbl">📦 כמות ארגזים</div>
+      <input class="sm-inp" id="smBoxes" type="number" min="0" placeholder="מספר ארגזים..."/>
+    </div>
+    <div class="sm-btns">
+      <button id="smConfirmBtn" onclick="confirmSupply()" style="flex:1;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;cursor:pointer">✅ אשרי ושמרי</button>
+      <button onclick="closeSupplyModal()" style="padding:11px 18px;background:none;border:1px solid var(--border);border-radius:9px;font-family:'Heebo',sans-serif;font-size:13px;cursor:pointer;color:var(--muted)">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <script src="config.js"></script>
 <script>
 // ══ CONFIG ══
 const SHEET_ID = CONFIG.SHEET_ID;
-// ════ שנים — נטענות מגיליון "הגדרות" בשיטס ════
 let YEARS = [
   {label:'תשפ"ז', tab:'מכירות לקראת תשפז'},
   {label:'תשפ"ו', tab:'מכירות לקראת תשפו'},
   {label:'תשפ"ה', tab:'מכירות לקראת תשפה ב"ה'},
-]; // ברירת מחדל — תוחלף בטעינה
+];
 const BOOKS = ['ברוכה הבאה ה','ברוכה הבאה ו','חברה לעט','מתחברת למילים','זה כל הסיפור',"מבינה ענין ה'","מבינה ענין ד'",'כשתקראי תביני'];
 const C = {
   name:'שם המוסד', city:'עיר היעד', supply:'האם סופק?',
@@ -447,10 +496,14 @@ const C = {
   invoice:'חשבונית על שם', sample:'חוברות לדוגמא',
   guide:'מדריך למורה', booklet:'חוברת למורה', target:'כתובת יעד',
   school:'בת ספר', org:'ארגון ספרי הלימוד',
+  resp:'אחראי', // ★ NEW
 };
 
 // ══ STATE ══
 let D={}, H={}, activeY=YEARS[0].label, scI=null, ccI=null, _trows=[];
+
+// ══ SUPPLY MODAL STATE ★ NEW ══
+let _supplyPending = null; // { schoolName, currentlySupplied, year }
 
 // ══ FETCH ══
 async function fetchTab(tab){
@@ -462,7 +515,6 @@ async function fetchTab(tab){
   const cols=json.table.cols.map(c=>c.label||'');
   const rows=(json.table.rows||[]).map(r=>{
     const obj=Object.fromEntries(cols.map((c,i)=>[c,r?.c?.[i]?.v??'']));
-    // Normalize name — trim trailing commas/spaces
     if(obj[C.name]) obj[C.name]=String(obj[C.name]).replace(/[,،،\s]+$/,'').trim();
     return obj;
   }).filter(r=>String(r[C.name]||'').trim());
@@ -481,14 +533,9 @@ async function loadYearsFromStorage() {
       const loaded = rows
         .filter(r => r['שנה'] && r['טאב'])
         .map(r => ({ label: String(r['שנה']).trim(), tab: String(r['טאב']).trim() }));
-      if (loaded.length) {
-        YEARS = loaded;
-        console.log('Loaded years:', YEARS.map(y=>y.label));
-      }
+      if (loaded.length) { YEARS = loaded; }
     }
-  } catch(e) {
-    console.warn('Using default years:', e.message);
-  }
+  } catch(e) { console.warn('Using default years:', e.message); }
 }
 
 // ══ INVENTORY ══
@@ -513,10 +560,7 @@ async function loadInventory() {
         wh1:   Number(r['מחסן א']  || 0),
         wh2:   Number(r['מחסן ב']  || 0),
       }));
-  } catch(e) {
-    inventory = [];
-    console.warn('inventory not loaded', e.message);
-  }
+  } catch(e) { inventory = []; console.warn('inventory not loaded', e.message); }
   renderInventory();
 }
 
@@ -526,8 +570,7 @@ function renderInventory() {
   if (!inventory.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">
       אין נתוני מלאי — צרי גיליון <strong>מלאי</strong> בשיטס עם עמודות: ספר | מחסן א | מחסן ב
-    </div>`;
-    return;
+    </div>`; return;
   }
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">
@@ -579,14 +622,11 @@ async function loadReminders() {
     if (!m) throw new Error('parse error');
     const json = JSON.parse(m[1]);
     const cols = json.table.cols.map(c => c.label || '');
-    console.log('תזכורות cols:', cols);
     const rows = (json.table.rows || []).map(r =>
       Object.fromEntries(cols.map((c, i) => [c, r?.c?.[i]?.v ?? '']))
     ).filter(r => String(r['טקסט'] || '').trim());
-    console.log('תזכורות rows:', rows);
     reminders = rows.map(r => {
       const rawDone = r['בוצע'];
-      console.log('בוצע raw value:', JSON.stringify(rawDone), typeof rawDone);
       const done = rawDone === true || String(rawDone || '').trim() === 'כן' || String(rawDone || '').trim() === 'TRUE';
       return {
         date:   String(r['תאריך'] || '').trim(),
@@ -595,27 +635,20 @@ async function loadReminders() {
         school: String(r['בית ספר'] || '').trim(),
       };
     });
-  } catch(e) {
-    reminders = [];
-    console.warn('reminders not loaded', e.message);
-  }
+  } catch(e) { reminders = []; console.warn('reminders not loaded', e.message); }
   renderReminders();
 }
 
 function renderReminders() {
   const el = document.getElementById('reminders-list');
   if (!el) return;
-
   const open   = reminders.filter(r => !r.done);
   const done   = reminders.filter(r =>  r.done);
-
   if (!reminders.length) {
     el.innerHTML = `<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">
       אין תזכורות — הוסיפי שורות בגיליון <strong>תזכורות</strong> בשיטס
-    </div>`;
-    return;
+    </div>`; return;
   }
-
   const row = r => `
     <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;
       background:${r.done ? 'var(--surface2)' : 'var(--surface)'};
@@ -624,27 +657,21 @@ function renderReminders() {
       <div style="font-size:18px;margin-top:1px">${r.done ? '✅' : '📌'}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:${r.done ? '400' : '600'};
-          text-decoration:${r.done ? 'line-through' : 'none'};color:var(--text)">
-          ${r.text}
-        </div>
+          text-decoration:${r.done ? 'line-through' : 'none'};color:var(--text)">${r.text}</div>
         <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
           ${r.date   ? `<span style="font-size:11px;color:var(--muted)">📅 ${r.date}</span>` : ''}
           ${r.school ? `<span style="font-size:11px;color:var(--accent);font-weight:600">🏫 ${r.school}</span>` : ''}
         </div>
       </div>
     </div>`;
-
   el.innerHTML = `
     ${open.length ? `
-      <div style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-        color:var(--dim);margin-bottom:8px">פתוחות (${open.length})</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">פתוחות (${open.length})</div>
       ${open.map(row).join('')}
     ` : '<div style="font-size:12px;color:#1a6b35;padding:8px 12px;background:#e6f4ec;border-radius:8px;margin-bottom:10px">✅ אין תזכורות פתוחות</div>'}
     ${done.length ? `
       <details style="margin-top:10px">
-        <summary style="font-size:11px;color:var(--muted);cursor:pointer;user-select:none">
-          הצג שבוצעו (${done.length})
-        </summary>
+        <summary style="font-size:11px;color:var(--muted);cursor:pointer;user-select:none">הצג שבוצעו (${done.length})</summary>
         <div style="margin-top:8px">${done.map(row).join('')}</div>
       </details>
     ` : ''}
@@ -671,60 +698,35 @@ async function init(){
     const first=YEARS.find(y=>D[y.label]?.length);
     if(first)activeY=first.label;
   }
-  updYbtns();
-  render();
-  hideLoader();
-  loadReminders();
-  loadInventory();
+  updYbtns(); render(); hideLoader();
+  loadReminders(); loadInventory();
 }
 
 // ── Hebrew year names ──
-const HEB_TENS = {'':'', 'פ':'פ', 'פא':'פא','פב':'פב','פג':'פג','פד':'פד','פה':'פה','פו':'פו','פז':'פז','פח':'פח','פט':'פט','צ':'צ','צא':'צא','צב':'צב','צג':'צג','צד':'צד','צה':'צה','צו':'צו','צז':'צז','צח':'צח','צט':'צט'};
-
 function nextHebrewYear(label) {
-  // Extract year letters from label like תשפ"ז
   const m = label.match(/תש([א-ת"]+)/);
   if (!m) return null;
   const yr = m[1].replace(/"/g,'');
-
-  // Map current year letters to next
   const sequence = ['פ','פא','פב','פג','פד','פה','פו','פז','פח','פט','צ','צא','צב','צג','צד','צה','צו','צז','צח','צט'];
   const idx = sequence.indexOf(yr);
   if (idx < 0 || idx >= sequence.length - 1) return null;
   const nextYr = sequence[idx + 1];
-  // Format with geresh: if single letter add ׳, if two letters add " before last
   let formatted;
   if (nextYr.length === 1) formatted = `תש${nextYr}'`;
   else formatted = `תש${nextYr.slice(0,-1)}"${nextYr.slice(-1)}`;
-  // Tab name: just letters without geresh/gershayim
-  const tabYr = nextYr.replace(/['"׳״]/g,'');
-  return { label: formatted, tab: `מכירות לקראת תש${tabYr}` };
+  return { label: formatted, tab: `מכירות לקראת תש${nextYr}` };
 }
 
 function addNextYear() {
-  const last = YEARS[0]; // newest year is first
+  const last = YEARS[0];
   const next = nextHebrewYear(last.label);
   if (!next) { alert('לא ניתן לחשב את השנה הבאה אוטומטית'); return; }
-
-  // Check if already exists
-  if (YEARS.find(y => y.label === next.label)) {
-    alert(`השנה ${next.label} כבר קיימת`);
-    return;
-  }
-
-  // Confirm
+  if (YEARS.find(y => y.label === next.label)) { alert(`השנה ${next.label} כבר קיימת`); return; }
   if (!confirm(`להוסיף את שנת ${next.label}?\n\nשים לב: צרי גיליון בשם "${next.tab}" בגוגל שיטס`)) return;
-
   YEARS.unshift(next);
-  D[next.label] = [];
-  H[next.label] = [];
-
-  // Rebuild year buttons
+  D[next.label] = []; H[next.label] = [];
   document.getElementById('ybtns').innerHTML = '';
-  buildYbtns();
-  activeY = next.label;
-  updYbtns();
-  render();
+  buildYbtns(); activeY = next.label; updYbtns(); render();
   alert(`✅ השנה ${next.label} נוספה!\n\nצרי גיליון בשיטס בשם:\n"${next.tab}"`);
 }
 
@@ -743,17 +745,16 @@ function updYbtns(){document.querySelectorAll('.ybtn').forEach(b=>b.classList.to
 // ══ HELPERS ══
 function isSup(r){const v=String(r[C.supply]||'').toLowerCase().trim();return v==='כן'||v.includes('סופק')||v==='true'||v==='1';}
 function isPaid(r){const v=String(r[C.pay]||'').toLowerCase().trim();return v==='שולם'||v==='כן'||v==='true';}
+function getResp(r){return String(r[C.resp]||'').trim();} // ★ NEW
 function bqty(r,b){
-  // נסה את השם המדויק קודם
   let v = Number(r[b]) || 0;
   if (v) return v;
-  // נרמל את שם החיפוש לשתי צורות: עם גרש סטנדרטי, ובלי גרש כלל
-  const normKey = b.replace(/[''`׳’‘]/g, "'");
-  const strippedKey = b.replace(/[''`׳’‘]/g, "");
+  const normKey = b.replace(/[''`׳'']/g, "'");
+  const strippedKey = b.replace(/[''`׳'']/g, "");
   for (const col in r) {
     const colStr = String(col);
-    const normCol = colStr.replace(/[''`׳’‘]/g, "'");
-    const strippedCol = colStr.replace(/[''`׳’‘]/g, "");
+    const normCol = colStr.replace(/[''`׳'']/g, "'");
+    const strippedCol = colStr.replace(/[''`׳'']/g, "");
     if (normCol === normKey || strippedCol === strippedKey) {
       v = Number(r[col]) || 0;
       if (v) return v;
@@ -785,15 +786,107 @@ function renderKPIs(rows,prev){
   const tb=tbooks(rows), ptb=tbooks(prev);
   const d=ptb?Math.round((tb-ptb)/ptb*100):null;
   const g=Math.ceil(tb/40);
+
+  // ★ חסרים — מי שהיה בשנה קודמת ולא הזמין השנה
+  const currNames = new Set(rows.map(r=>String(r[C.name]||'').trim()).filter(Boolean));
+  const missing = prev.filter(r => {
+    const name = String(r[C.name]||'').trim();
+    return name && !currNames.has(name);
+  });
+  const missingCount = missing.length;
+  const missingBooks = missing.reduce((s,r)=>s+BOOKS.reduce((ss,b)=>ss+bqty(r,b),0),0);
+
   document.getElementById('kgrid').innerHTML=`
     <div class="kcard green"><div class="klbl">לקוחות</div><div class="knum">${n}</div><div class="ksub">${activeY}</div></div>
-    <div class="kcard"><div class="klbl">ספרים</div><div class="knum">${tb.toLocaleString()}</div>${d!==null?`<div class="kdelta ${d>=0?'up':'down'}">${d>=0?'▲':'▼'}${Math.abs(d)}% משנה קודמת</div>`:'<div class="ksub">—</div>'}</div>
+    <div class="kcard"><div class="klbl">ספרים הוזמנו</div><div class="knum">${tb.toLocaleString()}</div>${d!==null?`<div class="kdelta ${d>=0?'up':'down'}">${d>=0?'▲':'▼'}${Math.abs(d)}% משנה קודמת</div>`:'<div class="ksub">—</div>'}</div>
     <div class="kcard"><div class="klbl">סופקו</div><div class="knum" style="color:var(--accent2)">${sup}</div><div class="ksub">${n?Math.round(sup/n*100):0}%</div></div>
-    <div class="kcard"><div class="klbl">ממתינים</div><div class="knum" style="color:var(--gold)">${n-sup}</div><div class="ksub">לא סופקו</div></div>
+    <div class="kcard"><div class="klbl">ממתינים לאספקה</div><div class="knum" style="color:var(--gold)">${n-sup}</div><div class="ksub">לא סופקו</div></div>
     <div class="kcard"><div class="klbl">שילמו</div><div class="knum" style="color:#5a2d82">${paid}</div><div class="ksub">${n?Math.round(paid/n*100):0}%</div></div>
     <div class="kcard gold"><div class="klbl">מדריכים</div><div class="knum">${g}</div><div class="ksub">כל 40 = 1</div></div>
+    ${prevY() ? `
+    <div class="kcard" onclick="openMissingModal()" style="cursor:pointer;border:2px solid #c9813a;background:#fff8f0;transition:transform .2s,box-shadow .2s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div class="klbl" style="color:#7a4a00">עוד לא הזמינו</div>
+      <div class="knum" style="color:#c9813a">${missingCount}</div>
+      <div class="ksub" style="color:#7a4a00">בתי ספר מתשפ"ו ↗</div>
+    </div>
+    <div class="kcard" onclick="openMissingModal()" style="cursor:pointer;border:2px dashed #c9813a;background:#fff8f0;transition:transform .2s,box-shadow .2s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.1)'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+      <div class="klbl" style="color:#7a4a00">ספרים משוערים</div>
+      <div class="knum" style="color:#c9813a">~${missingBooks.toLocaleString()}</div>
+      <div class="ksub" style="color:#7a4a00">לפי הזמנות תשפ"ו ↗</div>
+    </div>` : ''}
   `;
 }
+
+// ── Missing schools modal ★ NEW ──
+function openMissingModal() {
+  const rows = D[activeY] || [];
+  const prev = D[prevY()] || [];
+  const currNames = new Set(rows.map(r=>String(r[C.name]||'').trim()).filter(Boolean));
+  const missing = prev.filter(r => {
+    const name = String(r[C.name]||'').trim();
+    return name && !currNames.has(name);
+  });
+  const totalBooks = missing.reduce((s,r)=>s+BOOKS.reduce((ss,b)=>ss+bqty(r,b),0),0);
+
+  document.getElementById('mmSub').textContent =
+    `${missing.length} בתי ספר שהזמינו בתשפ"ו ועדיין לא הזמינו בתשפ"ז — ~${totalBooks.toLocaleString()} ספרים משוערים`;
+
+  const booksWithQty = BOOKS.filter(b => missing.some(r=>bqty(r,b)>0));
+
+  document.getElementById('mmBody').innerHTML = missing.length ? `
+    <div style="overflow-x:auto;border-radius:10px;border:1px solid var(--border)">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:var(--surface2)">
+            <th style="padding:9px 12px;text-align:right;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">שם המוסד</th>
+            <th style="padding:9px 12px;text-align:right;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">עיר</th>
+            <th style="padding:9px 12px;text-align:right;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">אחראי</th>
+            ${booksWithQty.map(b=>`<th style="padding:9px 12px;text-align:center;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap">${b}</th>`).join('')}
+            <th style="padding:9px 12px;text-align:center;font-weight:600;font-size:10px;color:var(--muted);text-transform:uppercase;border-bottom:1px solid var(--border)">סה"כ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${missing.map((r,i)=>{
+            const total = BOOKS.reduce((s,b)=>s+bqty(r,b),0);
+            const resp = getResp(r);
+            const rowBg = resp==='טובי' ? '#f5f7ff' : resp==='אלישבע' ? '#fff5f9' : (i%2===0?'var(--surface)':'var(--surface2)');
+            return `<tr style="background:${rowBg}">
+              <td style="padding:9px 12px;font-weight:600;color:var(--accent);border-bottom:1px solid var(--border)">${r[C.name]||'—'}</td>
+              <td style="padding:9px 12px;border-bottom:1px solid var(--border);color:var(--muted)">${r[C.city]||'—'}</td>
+              <td style="padding:9px 12px;border-bottom:1px solid var(--border)">
+                ${resp ? `<span class="badge ${resp==='טובי'?'b-tovi':'b-alisheva'}">${resp==='טובי'?'💙':'🩷'} ${resp}</span>` : '<span style="color:var(--dim)">—</span>'}
+              </td>
+              ${booksWithQty.map(b=>{
+                const q=bqty(r,b);
+                return `<td style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border);font-weight:${q?700:400};color:${q?'var(--accent)':'var(--dim)'}">${q||'—'}</td>`;
+              }).join('')}
+              <td style="padding:9px 12px;text-align:center;border-bottom:1px solid var(--border);font-weight:700;color:#c9813a">${total}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="background:#fff8f0">
+            <td colspan="3" style="padding:10px 12px;font-weight:700;font-size:12px;color:#7a4a00">סה"כ משוער</td>
+            ${booksWithQty.map(b=>{
+              const sum = missing.reduce((s,r)=>s+bqty(r,b),0);
+              return `<td style="padding:10px 12px;text-align:center;font-weight:700;color:#c9813a">${sum||'—'}</td>`;
+            }).join('')}
+            <td style="padding:10px 12px;text-align:center;font-weight:900;font-size:14px;color:#c9813a">${totalBooks.toLocaleString()}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  ` : '<div style="color:var(--muted);font-size:13px;text-align:center;padding:30px">🎉 כל בתי הספר מתשפ"ו כבר הזמינו!</div>';
+
+  document.getElementById('missingModal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMissingModal() {
+  document.getElementById('missingModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('missingModal').addEventListener('click', e => { if(e.target===e.currentTarget) closeMissingModal(); });
 
 // ── Bars ──
 function renderBars(rows,prev){
@@ -822,56 +915,14 @@ function renderStatus(rows){
   ).join('');
 }
 
-// ── Cities ──
-function renderCities(rows){
-  const m={};
-  rows.forEach(r=>{const c=String(r[C.city]||'').trim()||'לא ידוע';m[c]=(m[c]||0)+1;});
-  const s=Object.entries(m).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('ctotal').textContent=`${s.length} ערים`;
-  document.getElementById('citylist').innerHTML=s.slice(0,14).map(([c,n])=>
-    `<div class="ci"><span class="ciname">${c}</span><span class="cicnt">${n}</span></div>`
-  ).join('');
-}
-
-// ── Boxes ──
-function renderBoxes(rows){
-  const total=rows.reduce((s,r)=>s+(Number(r[C.boxes])||0),0);
-  const m={};
-  rows.forEach(r=>{if(r[C.ship]){const v=String(r[C.ship]).trim();m[v]=(m[v]||0)+(Number(r[C.boxes])||0);}});
-  document.getElementById('boxinfo').innerHTML=
-    `<div style="font-size:24px;font-weight:900;color:var(--accent)">${total}</div><div style="font-size:11px;color:var(--muted);margin-bottom:10px">ארגזים סה"כ</div>`+
-    Object.entries(m).map(([s,n])=>`<div class="birow"><span>${s}</span><span style="font-weight:700">${n}</span></div>`).join('');
-}
-
 // ── Not supplied ──
 function renderNS(rows){
   const ns=rows.filter(r=>!isSup(r));
-  document.getElementById('nslist').innerHTML=ns.length?ns.slice(0,10).map(r=>aitem('warn','⏳',r[C.name]||'—',r[C.city]||'')).join(''):aempty('הכל סופק! 🎉');
-}
-
-// ── Gaps ──
-function renderGaps(rows){
-  const g=rows.filter(r=>r[C.gaps]&&String(r[C.gaps]).trim());
-  document.getElementById('gaplist').innerHTML=g.length?g.slice(0,8).map(r=>aitem('warn','⚠️',r[C.name]||'—',String(r[C.gaps]).slice(0,30))).join(''):aempty('אין פערים ✅');
-}
-
-// ── Payments ──
-function renderPay(rows){
-  const m={};
-  rows.forEach(r=>{const v=String(r[C.pay]||'לא ידוע').trim()||'לא ידוע';m[v]=(m[v]||0)+1;});
-  const colors=['#2d5a3d','#c9a84c','#c0392b','#4a8c5c','#9b9b7a'];
-  const total=rows.length||1;
-  document.getElementById('paylist').innerHTML=Object.entries(m).sort((a,b)=>b[1]-a[1]).map(([v,n],i)=>
-    `<div class="si"><div class="sdot" style="background:${colors[i%colors.length]}"></div><span class="sn">${v}</span><span class="sp">${Math.round(n/total*100)}%</span><span class="sc">${n}</span></div>`
-  ).join('');
-}
-
-// ── No pay ──
-function renderNoPay(rows){
-  const np=rows.filter(r=>isSup(r)&&!isPaid(r));
-  const el=(id)=>document.getElementById(id);
-  const html=np.length?np.slice(0,8).map(r=>aitem('red','💳',r[C.name]||'—',r[C.city]||'')).join(''):aempty('הכל שולם! 🎉');
-  el('nopay').innerHTML=html; const np2=document.getElementById('nopay2'); if(np2) np2.innerHTML=html;
+  document.getElementById('nslist').innerHTML=ns.length?ns.slice(0,10).map(r=>{
+    const resp = getResp(r);
+    const respBadge = resp ? `<span class="badge ${resp==='טובי'?'b-tovi':'b-alisheva'}" style="margin-right:4px">${resp==='טובי'?'💙':'🩷'} ${resp}</span>` : '';
+    return aitem('warn','⏳',r[C.name]||'—',(r[C.city]||'')+' '+respBadge);
+  }).join(''):aempty('הכל סופק! 🎉');
 }
 
 // ── Clients table ──
@@ -892,6 +943,7 @@ function ft(){
   const city=document.getElementById('fci').value, sup=document.getElementById('fsu').value;
   const org=document.getElementById('forg').value;
   const book=document.getElementById('fbk').value, pay=document.getElementById('fpy').value;
+  const resp=document.getElementById('fresp').value; // ★ NEW
   const f=rows.filter(r=>{
     if(q&&!String(r[C.name]||'').toLowerCase().includes(q)&&!String(r[C.city]||'').toLowerCase().includes(q))return false;
     if(city&&String(r[C.city]||'').trim()!==city)return false;
@@ -901,33 +953,40 @@ function ft(){
     if(book&&!(bqty(r,book)>0))return false;
     if(pay==='paid'&&!isPaid(r))return false;
     if(pay==='notpaid'&&isPaid(r))return false;
+    if(resp&&String(r[C.resp]||'').trim()!==resp)return false; // ★ NEW
     return true;
   });
   document.getElementById('fcnt').textContent=`${f.length} לקוחות`;
-  // Add click handlers via event delegation to avoid quote issues
   setTimeout(()=>{
     document.querySelectorAll('#tb tr.clickrow').forEach(tr=>{
       tr.onclick = () => openCard(tr.dataset.name);
     });
   }, 0);
-  const cols=[C.name,C.org,C.city,...BOOKS,C.supply,C.pay,C.boxes,C.ship,C.notes];
-  document.getElementById('th').innerHTML='<tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr>';
-  document.getElementById('tb').innerHTML=f.map(r=>`<tr data-name="${encodeURIComponent(String(r[C.name]||'').trim())}" class="clickrow">`+cols.map(c=>{
-    const v=r[c]??'';
-    if(c===C.name)return`<td><span class="tn">${v||'—'}</span></td>`;
-    if(c===C.org)return`<td><span class="badge" style="background:var(--badge-bg,#eef2ff);color:var(--accent);border:1px solid var(--accent3)">${v||'פרטי'}</span></td>`;
-    if(c===C.supply)return`<td><span class="badge ${isSup(r)?'b-yes':'b-no'}">${v||'—'}</span></td>`;
-    if(c===C.pay)return`<td><span class="badge ${isPaid(r)?'b-paid':'b-no'}">${v||'—'}</span></td>`;
-    if(BOOKS.includes(c)){const bq=bqty(r,c);return`<td style="text-align:center;font-weight:${bq>0?700:400};color:${bq>0?'var(--accent)':'var(--dim)'}">${bq>0?bq:'—'}</td>`;}
-    if(c===C.gaps&&v){
-      let bg='',col='',brd='';
-      if(v.includes('לקוח חדש')){bg='#fffbec';col='#7a5c00';brd='#f5e0a0';}
-      else if(v.includes('ספר חדש')){bg='#fce8f3';col='#8b1a5a';brd='#f0b3d8';}
-      else if(v.includes('הורידו')&&!v.includes('כמות')){bg='#e8f7fa';col='#1a5f72';brd='#a8dce8';}
-      if(bg)return`<td><span style="background:${bg};color:${col};border:1px solid ${brd};border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600">${v}</span></td>`;
-    }
-    return`<td>${v||'—'}</td>`;
-  }).join('')+'</tr>').join('');
+
+  const cols=[C.name,C.resp,C.org,C.city,...BOOKS,C.supply,C.pay,C.boxes,C.ship,C.notes];
+  document.getElementById('th').innerHTML='<tr>'+cols.map(c=>`<th>${c==='האם סופק?'?'סטטוס':c}</th>`).join('')+'</tr>';
+  document.getElementById('tb').innerHTML=f.map(r=>{
+    const sup = isSup(r);
+    const resp = getResp(r);
+    const rowClass = resp==='טובי' ? 'row-tovi' : resp==='אלישבע' ? 'row-alisheva' : '';
+    // ★ Add a left border strip for supply status
+    const supStyle = sup ? 'border-right:3px solid #2d5a3d' : 'border-right:3px solid #c9a84c';
+    return `<tr data-name="${encodeURIComponent(String(r[C.name]||'').trim())}" class="clickrow ${rowClass}" style="${supStyle}">`+cols.map(c=>{
+      const v=r[c]??'';
+      if(c===C.name)return`<td><span class="tn">${v||'—'}</span></td>`;
+      // ★ NEW: אחראי עמודה
+      if(c===C.resp){
+        if(!v) return `<td><span style="color:var(--dim);font-size:11px">—</span></td>`;
+        const isTovi = String(v).trim()==='טובי';
+        return `<td><span class="badge ${isTovi?'b-tovi':'b-alisheva'}">${isTovi?'💙':'🩷'} ${v}</span></td>`;
+      }
+      if(c===C.org)return`<td><span class="badge" style="background:var(--badge-bg,#eef2ff);color:var(--accent);border:1px solid var(--accent3)">${v||'פרטי'}</span></td>`;
+      if(c===C.supply)return`<td><span class="badge ${sup?'b-yes':'b-no'}">${sup?'✅ סופק':'⏳ ממתין'}</span></td>`;
+      if(c===C.pay)return`<td><span class="badge ${isPaid(r)?'b-paid':'b-no'}">${v||'—'}</span></td>`;
+      if(BOOKS.includes(c)){const bq=bqty(r,c);return`<td style="text-align:center;font-weight:${bq>0?700:400};color:${bq>0?'var(--accent)':'var(--dim)'}">${bq>0?bq:'—'}</td>`;}
+      return`<td>${v||'—'}</td>`;
+    }).join('')+'</tr>';
+  }).join('');
 }
 
 // ── Compare ──
@@ -957,7 +1016,6 @@ function renderAlerts(rows,prev){
   const prevNames=new Set(prev.map(r=>String(r[C.name]||'').trim()));
   const newCl=rows.filter(r=>r[C.name]&&!prevNames.has(String(r[C.name]).trim()));
   document.getElementById('newcl').innerHTML=newCl.length?newCl.map(r=>aitem('blue','🆕',r[C.name],r[C.city]||'')).join(''):aempty('אין לקוחות חדשים');
-
   const pvRows=prev; const veteran=[];
   rows.forEach(r=>{
     if(!prevNames.has(String(r[C.name]||'').trim()))return;
@@ -967,18 +1025,12 @@ function renderAlerts(rows,prev){
     });
   });
   document.getElementById('newbk').innerHTML=veteran.length?veteran.map(v=>aitem('warn','📗',v.name,v.book)).join(''):aempty('אין');
-
-  const gaps=rows.filter(r=>r[C.gaps]&&String(r[C.gaps]).trim());
-  const gaps2el = document.getElementById('gaps2');
-  if(gaps2el) gaps2el.innerHTML=gaps.length?gaps.map(r=>aitem('warn','⚠️',r[C.name]||'—',String(r[C.gaps]).slice(0,35))).join(''):aempty('אין פערים ✅');
 }
 
 // ══ CLIENT CARD ══
 function openCard(encoded){
   const name=decodeURIComponent(encoded);
   document.getElementById('ccName').textContent=name;
-
-  // Gather data across all years
   const yearData=[];
   for(const y of YEARS){
     const rows=D[y.label]||[];
@@ -987,11 +1039,9 @@ function openCard(encoded){
   }
   if(!yearData.length)return;
   const latest=yearData[0].r;
-
-  // Sub title
   document.getElementById('ccSub').textContent=`${latest[C.city]||''} ${latest[C.school]?'| '+latest[C.school]:''}`;
 
-  // Meta
+  const resp = getResp(latest);
   const meta=[
     {l:'ארגון',v:latest[C.org]||'פרטי'},
     {l:'עיר',v:latest[C.city]},
@@ -1000,19 +1050,26 @@ function openCard(encoded){
     {l:'טלפון',v:latest[C.phone]},
     {l:'חשבונית על שם',v:latest[C.invoice]},
     {l:'שליח',v:latest[C.ship]},
+    {l:'אחראי',v:resp ? `${resp==='טובי'?'💙':'🩷'} ${resp}` : ''},  // ★ NEW
   ].filter(m=>m.v);
   document.getElementById('ccMeta').innerHTML=meta.map(m=>`<div class="cc-mitem"><div class="cc-mlbl">${m.l}</div><div class="cc-mval">${m.v}</div></div>`).join('');
 
-  // Years history
-  const currentYear = YEARS[0].label; // תשפ"ז
+  const currentYear = YEARS[0].label;
   document.getElementById('ccYears').innerHTML=yearData.map(({year,r})=>{
     const books=BOOKS.filter(b=>bqty(r,b)>0);
     const isCurrent = year === currentYear;
     const sup=isSup(r), paid=isPaid(r);
     return`<div class="cc-yr">
       <div class="cc-yrtitle">📅 ${year}
-        ${isCurrent?`<span class="badge ${sup?'b-yes':'b-no'}" id="ccSupBadge" style="margin-right:8px;cursor:pointer;border:2px solid ${sup?'#1a6b35':'#e0509a'}" onclick="toggleSupply('${name.replace(/'/g,"\\'")}', ${sup}, '${year.replace(/"/g,'&quot;')}')" title="לחצי לשינוי סטטוס אספקה">${sup?'✅ סופק (לחצי לביטול)':'⏳ לא סופק (לחצי לסימון)'}</span>`:''}
+        ${isCurrent?`<span class="badge ${sup?'b-yes':'b-no'}" id="ccSupBadge"
+          style="margin-right:8px;cursor:pointer;border:2px solid ${sup?'#1a6b35':'#e0509a'}"
+          onclick="openSupplyModal('${name.replace(/'/g,"\\'")}', ${sup}, '${year.replace(/"/g,'&quot;')}')"
+          title="לחצי לשינוי סטטוס אספקה">
+          ${sup?'✅ סופק (לחצי לביטול)':'⏳ לא סופק — לחצי לסימון'}
+        </span>`:''}
         ${isCurrent?`<span class="badge ${paid?'b-paid':'b-no'}">${paid?'💜 שולם':'💳 לא שולם'}</span>`:''}
+        ${isCurrent&&sup&&latest[C.ship]?`<span class="badge" style="background:#eef8fc;color:#0a4a62;border:1px solid #2aa0c8;margin-right:4px">🚚 ${latest[C.ship]}</span>`:''}
+        ${isCurrent&&sup&&latest[C.boxes]?`<span class="badge" style="background:#eef8fc;color:#0a4a62;border:1px solid #2aa0c8">📦 ${latest[C.boxes]} ארגזים</span>`:''}
       </div>
       <div class="cc-yrgrid">
         ${books.map(b=>`<div class="cc-yritem"><div class="cc-yrbook">${b}</div><div class="cc-yrqty">${bqty(r,b)}</div></div>`).join('')||'<div style="color:var(--muted);font-size:12px">אין הזמנה</div>'}
@@ -1038,13 +1095,11 @@ function openCard(encoded){
   document.getElementById('clientCard').classList.add('open');
   document.body.style.overflow='hidden';
 
-  // תזכורות לבי"ס זה
   const schoolReminders = reminders.filter(r => r.school === name);
   const remEl = document.getElementById('ccReminders');
   if (remEl) {
-    if (!schoolReminders.length) {
-      remEl.style.display = 'none';
-    } else {
+    if (!schoolReminders.length) { remEl.style.display = 'none'; }
+    else {
       remEl.style.display = 'block';
       const open = schoolReminders.filter(r => !r.done);
       const done = schoolReminders.filter(r =>  r.done);
@@ -1075,8 +1130,45 @@ function closeCard(){
   document.body.style.overflow='';
 }
 
-async function toggleSupply(schoolName, currentlySupplied, year){
-  const newVal = !currentlySupplied;
+// ══ SUPPLY MODAL ★ NEW ══
+function openSupplyModal(schoolName, currentlySupplied, year) {
+  // אם מבטלים סופק — אין צורך בפרטי משלוח
+  if (currentlySupplied) {
+    // ביטול ישיר — שאל אישור
+    if (!confirm(`לבטל את סימון "סופק" עבור ${schoolName}?`)) return;
+    doToggleSupply(schoolName, false, year, '', '');
+    return;
+  }
+  _supplyPending = { schoolName, year };
+  document.getElementById('smTitle').textContent = `✅ סימון כסופק — ${schoolName}`;
+  document.getElementById('smSub').textContent = 'מלאי את פרטי המשלוח';
+  document.getElementById('smCourier').value = '';
+  document.getElementById('smBoxes').value = '';
+  document.getElementById('supplyModal').classList.add('open');
+  setTimeout(()=>document.getElementById('smCourier').focus(), 100);
+}
+
+function closeSupplyModal() {
+  document.getElementById('supplyModal').classList.remove('open');
+  _supplyPending = null;
+}
+
+async function confirmSupply() {
+  if (!_supplyPending) return;
+  const courier = document.getElementById('smCourier').value.trim();
+  const boxes   = document.getElementById('smBoxes').value.trim();
+  if (!courier) { document.getElementById('smCourier').focus(); showToastMsg('❌ יש למלא שם חברת שליחויות'); return; }
+  if (!boxes)   { document.getElementById('smBoxes').focus();   showToastMsg('❌ יש למלא כמות ארגזים');    return; }
+
+  const btn = document.getElementById('smConfirmBtn');
+  btn.textContent='⏳ שומר...'; btn.disabled=true;
+
+  closeSupplyModal();
+  await doToggleSupply(_supplyPending.schoolName, true, _supplyPending.year, courier, boxes);
+  btn.textContent='✅ אשרי ושמרי'; btn.disabled=false;
+}
+
+async function doToggleSupply(schoolName, newVal, year, courier, boxes) {
   const badge = document.getElementById('ccSupBadge');
   if(badge){ badge.textContent='⏳ מעדכן...'; badge.style.pointerEvents='none'; }
 
@@ -1088,16 +1180,21 @@ async function toggleSupply(schoolName, currentlySupplied, year){
         school: schoolName,
         year: year.replace(/"/g,''),
         supply: newVal ? 'כן' : 'לא',
+        courier: courier || '',   // ★ NEW
+        boxes:   boxes   || '',   // ★ NEW
       })
     });
     if(res.ok){
-      // עדכון מקומי מיידי — year כאן הוא ה-label המלא (עם גרשיים) כפי שמופיע ב-D
       const rows = D[year]||[];
       const row = rows.find(r=>String(r[C.name]||'').trim()===schoolName);
-      if(row) row[C.supply] = newVal ? 'כן' : 'לא';
-      showToastMsg(newVal ? '✅ סומן כסופק' : '⏳ סומן כלא סופק');
-      openCard(encodeURIComponent(schoolName)); // רענון הכרטיס
-      render(); // רענון הדשבורד
+      if(row){
+        row[C.supply] = newVal ? 'כן' : 'לא';
+        if(courier) row[C.ship]  = courier;  // ★ עדכון מקומי
+        if(boxes)   row[C.boxes] = boxes;    // ★ עדכון מקומי
+      }
+      showToastMsg(newVal ? `✅ ${schoolName} סומן כסופק — ${courier}, ${boxes} ארגזים` : '⏳ סומן כלא סופק');
+      openCard(encodeURIComponent(schoolName));
+      render();
     } else {
       showToastMsg('❌ שגיאה בעדכון — נסי שוב');
       if(badge){ badge.style.pointerEvents=''; }
@@ -1108,22 +1205,19 @@ async function toggleSupply(schoolName, currentlySupplied, year){
   }
 }
 
+// ══ MANUAL ORDER ══
 let _manualSchool = '';
 
 function openAddOrder(schoolName){
   _manualSchool = schoolName || document.getElementById('ccName')?.textContent || '';
   const title = document.getElementById('manualTitle');
   if(title) title.textContent = `הוספת הזמנה — ${_manualSchool}`;
-  // Hide school selector when coming from client card
   const wrap = document.getElementById('manualSchoolWrap');
   if(wrap) wrap.style.display='none';
-  // Populate year select
   const yrSel = document.getElementById('manualYear');
   yrSel.innerHTML = YEARS.map(y=>`<option value="${y.label}">${y.label}</option>`).join('');
   yrSel.value = YEARS[0].label;
   document.getElementById('manualDate').value = new Date().toISOString().split('T')[0];
-
-  // Build book inputs
   document.getElementById('manualBooks').innerHTML = BOOKS.map(b=>`
     <div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:3px">${b}</div>
@@ -1131,51 +1225,35 @@ function openAddOrder(schoolName){
         placeholder="0" oninput="updateManualGuides()"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;color:var(--accent);outline:none"/>
     </div>`).join('');
-
-  // Set year to current
   document.getElementById('manualYear').value = YEARS[0].label;
   document.getElementById('manualNote').value = '';
   document.getElementById('manualGuides').style.display='none';
   document.getElementById('manualOrderModal').style.display='flex';
 }
 
-function updateManualGuides(){
-  // (ביטול חישוב אוטומטי — מדריך וחוברת למורה מוזנים ידנית בסוף הטופס)
-}
+function updateManualGuides(){}
 
 function closeManual(){
   document.getElementById('manualOrderModal').style.display='none';
 }
 
 async function saveManualOrder(){
-  // אם לא נבחר בית ספר מהרשימה (כי זה בית ספר חדש), קח את הטקסט שהוקלד בשדה החיפוש
   if(!_manualSchool){
     const inputEl = document.getElementById('manualSchoolInput');
     const typed = inputEl ? inputEl.value.trim() : '';
     if(typed) _manualSchool = typed;
   }
-  if(!_manualSchool){
-    showToastMsg('❌ יש לבחור או להקליד שם בית ספר');
-    return;
-  }
-
+  if(!_manualSchool){ showToastMsg('❌ יש לבחור או להקליד שם בית ספר'); return; }
   const year = document.getElementById('manualYear').value;
   const date = document.getElementById('manualDate').value;
   const note = document.getElementById('manualNote').value;
-
   const books = {};
   BOOKS.forEach(b=>{
     const el = document.getElementById('mb_'+b.replace(/[^a-zA-Zא-ת]/g,'_'));
     const v = el ? Number(el.value)||0 : 0;
     books[b] = v > 0 ? v : '';
   });
-
-  if(!Object.values(books).some(v=>Number(v)>0)){
-    showToastMsg('❌ יש להזין לפחות ספר אחד');
-    return;
-  }
-
-  // חישוב מלאי — כמו ב-approveOrder
+  if(!Object.values(books).some(v=>Number(v)>0)){ showToastMsg('❌ יש להזין לפחות ספר אחד'); return; }
   const inventoryUpdates = [];
   for(const book of BOOKS){
     const ordered = Number(books[book]) || 0;
@@ -1183,72 +1261,55 @@ async function saveManualOrder(){
     const inv = inventory.find(i => i.book === book);
     if(!inv) continue;
     inventoryUpdates.push({
-      book,
-      ordered,
+      book, ordered,
       wh1_before: inv.wh1,
       wh1_after:  Math.max(0, inv.wh1 - ordered),
-      wh2:        inv.wh2,
-      low:        Math.max(0, inv.wh1 - ordered) < 500,
-      empty:      Math.max(0, inv.wh1 - ordered) === 0,
+      wh2: inv.wh2,
+      low:   Math.max(0, inv.wh1 - ordered) < 500,
+      empty: Math.max(0, inv.wh1 - ordered) === 0,
     });
   }
-
   const booksArr = BOOKS.map(b=>({name:b, qty:Number(books[b])||0}));
   const gaps = calcGaps(booksArr, _manualSchool);
   const sheetGaps = gaps.filter(g => g.type !== 'qty_change');
   const gapsText = sheetGaps.map(g=>g.text).join(' | ');
-  const gapType = sheetGaps[0]?.type || '';
-
   const payload = {
-    action:  'save',
-    school:  _manualSchool,
-    year:    year.replace(/"/g,''),
-    date:    date || new Date().toLocaleDateString('he-IL'),
-    notes:   note,
+    action:'save', school:_manualSchool,
+    year: year.replace(/"/g,''),
+    date: date || new Date().toLocaleDateString('he-IL'),
+    notes: note,
     contact: document.getElementById('manualContact')?.value || '',
     phone:   document.getElementById('manualPhone')?.value   || '',
     target:  document.getElementById('manualTarget')?.value  || '',
     city:    document.getElementById('manualCity')?.value    || '',
     invoice: document.getElementById('manualInvoice')?.value || '',
-    gaps: gapsText,
-    gapType: gapType,
+    gaps: gapsText, gapType: sheetGaps[0]?.type || '',
     guide:   document.getElementById('manualGuideInput')?.value   || '',
     booklet: document.getElementById('manualBookletInput')?.value || '',
     warehouse: 'א',
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === _manualSchool),
-    inventoryUpdates,
-    ...books
+    inventoryUpdates, ...books
   };
-
-  // כפתור שמירה — מצב טעינה
   const btn = document.querySelector('#manualOrderModal button[onclick="saveManualOrder()"]');
   if(btn){ btn.textContent='⏳ שומר...'; btn.disabled=true; }
-
   try {
     const res = await fetch(CONFIG.SAVE_WEBHOOK, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(payload)
     });
     if(res.ok){
-      // עדכן מלאי מקומי
       for(const upd of inventoryUpdates){
         const inv = inventory.find(i=>i.book===upd.book);
         if(inv) inv.wh1 = upd.wh1_after;
       }
-      renderInventory();
-      closeManual();
+      renderInventory(); closeManual();
       const lowBooks = inventoryUpdates.filter(u=>u.empty||u.low);
       let msg = `✅ ההזמנה של ${_manualSchool} נשמרה!`;
       if(lowBooks.length) msg += ` ⚠️ מלאי נמוך: ${lowBooks.map(u=>u.book).join(', ')}`;
       showToastMsg(msg);
-    } else {
-      showToastMsg('❌ שגיאה בשמירה — נסי שוב');
-    }
-  } catch(e){
-    showToastMsg('❌ שגיאה: '+e.message);
-  } finally {
-    if(btn){ btn.textContent='שמור הזמנה'; btn.disabled=false; }
-  }
+    } else { showToastMsg('❌ שגיאה בשמירה — נסי שוב'); }
+  } catch(e){ showToastMsg('❌ שגיאה: '+e.message); }
+  finally { if(btn){ btn.textContent='שמור הזמנה'; btn.disabled=false; } }
 }
 
 function openManualStandalone(){
@@ -1261,7 +1322,6 @@ function openManualStandalone(){
   if(input) input.value='';
   const chosen = document.getElementById('manualSchoolChosen');
   if(chosen) chosen.textContent='';
-
   const yrSel = document.getElementById('manualYear');
   if(yrSel) yrSel.innerHTML = YEARS.map(y=>`<option value="${y.label}">${y.label}</option>`).join('');
   document.getElementById('manualDate').value = new Date().toISOString().split('T')[0];
@@ -1277,8 +1337,6 @@ function openManualStandalone(){
   const _bi=document.getElementById('manualBookletInput'); if(_bi) _bi.value='';
   const _gr=document.getElementById('manualGuidePrevRef'); if(_gr) _gr.textContent='';
   const _br=document.getElementById('manualBookletPrevRef'); if(_br) _br.textContent='';
-
-  // בנה שדות פרטי לקוח
   const detailsWrap = document.getElementById('manualClientDetails');
   if(detailsWrap){
     const fields = [
@@ -1294,7 +1352,6 @@ function openManualStandalone(){
         <input id="${f.id}" placeholder="—" style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);font-size:13px;font-family:'Heebo',sans-serif;color:var(--text);padding:2px 0;outline:none"/>
       </div>`).join('');
   }
-
   document.getElementById('manualOrderModal').style.display='flex';
   setTimeout(()=>addKeyboardNav('manualSchoolInput','manualSchoolDD', pickManualSchool), 50);
 }
@@ -1311,14 +1368,12 @@ function updateManualBookColor(bookName, val){
   const inp = document.getElementById(elId);
   if(!lbl) return;
   if(nowQty === 0 && prevQty > 0){
-    // חזר לריק — תכלת כרמז
     lbl.innerHTML = `${bookName} <span style="font-size:10px;background:#c8eef7;color:#0a4a62;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #2aa0c8">היה ${prevQty}</span>`;
     if(inp){ inp.style.borderColor='#2aa0c8'; inp.style.background='#eef8fc'; }
   } else if(nowQty > 0 && prevQty === 0){
     lbl.innerHTML = `${bookName} <span style="font-size:10px;background:#fcd0ec;color:#7a0050;font-weight:800;padding:1px 6px;border-radius:4px;border:1px solid #e0509a">✦ חדש</span>`;
     if(inp){ inp.style.borderColor='#e0509a'; inp.style.background='#fef0f8'; }
   } else if(nowQty === prevQty){
-    // זהה לתשפ"ו — ירוק
     lbl.innerHTML = `${bookName} <span style="font-size:10px;background:#dff0d8;color:#2d6a2d;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #5cb85c">✓ כמו תשפ"ו</span>`;
     if(inp){ inp.style.borderColor='#5cb85c'; inp.style.background='#f2fbf2'; }
   } else if(nowQty !== prevQty && nowQty > 0){
@@ -1331,7 +1386,6 @@ function updateManualBookColor(bookName, val){
   }
 }
 
-// ניווט מקלדת בדרופדאונים
 function addKeyboardNav(inputId, ddId, pickFn){
   const input = document.getElementById(inputId);
   const dd = document.getElementById(ddId);
@@ -1340,24 +1394,12 @@ function addKeyboardNav(inputId, ddId, pickFn){
   input.addEventListener('keydown', e=>{
     const items = dd.querySelectorAll('div');
     if(!items.length || dd.style.display==='none') return;
-    if(e.key==='ArrowDown'){
-      e.preventDefault();
-      idx = Math.min(idx+1, items.length-1);
-    } else if(e.key==='ArrowUp'){
-      e.preventDefault();
-      idx = Math.max(idx-1, 0);
-    } else if(e.key==='Enter'){
-      e.preventDefault();
-      const chosen = idx>=0 ? idx : 0; // אם לא נבחר עם חיצים, בחר את הראשון ברשימה
-      items[chosen].dispatchEvent(new MouseEvent('mousedown', {bubbles:true, cancelable:true}));
-      idx=-1; return;
-    } else if(e.key==='Escape'){
-      dd.style.display='none'; idx=-1; return;
-    } else { idx=-1; }
-    items.forEach((it,i)=>{
-      it.style.background = i===idx ? 'var(--accent3)' : '';
-      it.style.fontWeight  = i===idx ? '700' : '';
-    });
+    if(e.key==='ArrowDown'){ e.preventDefault(); idx = Math.min(idx+1, items.length-1); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); idx = Math.max(idx-1, 0); }
+    else if(e.key==='Enter'){ e.preventDefault(); const chosen = idx>=0 ? idx : 0; items[chosen].dispatchEvent(new MouseEvent('mousedown', {bubbles:true, cancelable:true})); idx=-1; return; }
+    else if(e.key==='Escape'){ dd.style.display='none'; idx=-1; return; }
+    else { idx=-1; }
+    items.forEach((it,i)=>{ it.style.background = i===idx ? 'var(--accent3)' : ''; it.style.fontWeight = i===idx ? '700' : ''; });
     if(idx>=0) items[idx].scrollIntoView({block:'nearest'});
   });
 }
@@ -1384,12 +1426,8 @@ function pickManualSchool(name){
   if(dd) dd.style.display='none';
   const title = document.getElementById('manualTitle');
   if(title) title.textContent = `הוספת הזמנה — ${name}`;
-
-  // מלא פרטי לקוח מתשפ"ו
   const prevYear = YEARS[1]?.label;
   const prevRow = (D[prevYear]||[]).find(r=>String(r[C.name]||'').trim()===name);
-
-  // פרטים
   const detailsFields = [
     {id:'manualContact', key: C.contact},
     {id:'manualPhone',   key: C.phone},
@@ -1401,9 +1439,6 @@ function pickManualSchool(name){
     const el = document.getElementById(f.id);
     if(el && prevRow) el.value = String(prevRow[f.key]||'').trim();
   });
-
-  // חיווי צבעים מיידי לפי תשפ"ו — רק לספרים שהיו בתשפ"ו (תכלת = רמז להזמין)
-  // ספרים חדשים (לא היו בתשפ"ו) נשארים נייטרליים עד שתוזן בהם כמות
   if(prevRow){
     BOOKS.forEach(b=>{
       const elId = 'mb_'+b.replace(/[^א-ת]/g,'_');
@@ -1413,24 +1448,17 @@ function pickManualSchool(name){
       const prevQty = bqty(prevRow, b);
       if(!lbl) return;
       if(prevQty > 0){
-        // היה בתשפ"ו — סמן תכלת כרמז שצריך להזמין
         lbl.innerHTML = `${b} <span style="font-size:10px;background:#c8eef7;color:#0a4a62;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid #2aa0c8">היה ${prevQty}</span>`;
         if(el){ el.style.borderColor='#2aa0c8'; el.style.background='#eef8fc'; el.placeholder='0'; }
       }
-      // אחרת (ספר חדש) — לא נוגעים בעיצוב כלל בשלב הזה
     });
   }
-  // הצג מדריך/חוברת מתשפ"ו
   const guideRef = document.getElementById('manualGuidePrevRef');
   const bookletRef = document.getElementById('manualBookletPrevRef');
-  if(prevRow && guideRef){
-    const gv = String(prevRow[C.guide]||'').trim();
-    guideRef.textContent = gv ? 'תשפ״ו: ' + gv : 'תשפ״ו: —';
-  } else if(guideRef){ guideRef.textContent = ''; }
-  if(prevRow && bookletRef){
-    const bv = String(prevRow[C.booklet]||'').trim();
-    bookletRef.textContent = bv ? 'תשפ״ו: ' + bv : 'תשפ״ו: —';
-  } else if(bookletRef){ bookletRef.textContent = ''; }
+  if(prevRow && guideRef){ const gv = String(prevRow[C.guide]||'').trim(); guideRef.textContent = gv ? 'תשפ״ו: ' + gv : 'תשפ״ו: —'; }
+  else if(guideRef){ guideRef.textContent = ''; }
+  if(prevRow && bookletRef){ const bv = String(prevRow[C.booklet]||'').trim(); bookletRef.textContent = bv ? 'תשפ״ו: ' + bv : 'תשפ״ו: —'; }
+  else if(bookletRef){ bookletRef.textContent = ''; }
   updateManualGuides();
 }
 
@@ -1439,13 +1467,14 @@ function showToastMsg(msg){
   if(!t){
     t = document.createElement('div');
     t.id='toastMsg';
-    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:999;transition:opacity .3s';
+    t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:9999;transition:opacity .3s;max-width:80vw;text-align:center';
     document.body.appendChild(t);
   }
   t.textContent=msg; t.style.opacity='1';
-  setTimeout(()=>t.style.opacity='0', 3000);
+  setTimeout(()=>t.style.opacity='0', 3500);
 }
 document.getElementById('clientCard').addEventListener('click',e=>{if(e.target===e.currentTarget)closeCard();});
+document.getElementById('supplyModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeSupplyModal();});
 
 // ══ NAV ══
 document.querySelectorAll('.nv').forEach(b=>{
@@ -1471,13 +1500,8 @@ const UPLOAD_WEBHOOK = CONFIG.UPLOAD_WEBHOOK;
 function filterSchoolList(q) {
   const dd = document.getElementById('schoolDropdown');
   if (!dd) return;
-  // רק מתשפ"ו (YEARS[1])
   const prevYear = YEARS[1]?.label;
-  console.log('prevYear:', prevYear, 'rows:', (D[prevYear]||[]).length);
-  const clientList = [...new Set(
-    (D[prevYear] || []).map(r=>String(r[C.name]||'').trim()).filter(Boolean)
-  )].sort();
-  console.log('clientList:', clientList);
+  const clientList = [...new Set((D[prevYear] || []).map(r=>String(r[C.name]||'').trim()).filter(Boolean))].sort();
   const filtered = q ? clientList.filter(c=>c.includes(q)) : clientList;
   dd.innerHTML = filtered.map((c,i)=>{
     const safe = c.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -1497,10 +1521,7 @@ function selectSchool(name) {
 
 function selectSchoolByIndex(i) {
   const items = document.querySelectorAll('#schoolDropdown .sditem');
-  if (items[i]) {
-    const name = items[i].dataset.name;
-    selectSchool(name);
-  }
+  if (items[i]) { const name = items[i].dataset.name; selectSchool(name); }
 }
 
 document.addEventListener('click', e => {
@@ -1525,100 +1546,52 @@ if(dz){
   });
 }
 
-function handlePDF(input){
-  const file=input.files[0];
-  if(file)processPDF(file);
-}
+function handlePDF(input){ const file=input.files[0]; if(file)processPDF(file); }
 
-// ── Clean RTL text ──
-function cleanRTL(str) {
-  return str.replace(/[‎‏‪-‮⁦-⁩؜]/g, '').trim();
-}
+function cleanRTL(str) { return str.replace(/[‎‏‪-‮⁦-⁩؜]/g, '').trim(); }
 
-// ── Parse PDF text ──
 function parsePDFText(raw) {
   const lines = raw.split(/\n/).map(l => l.trim()).filter(Boolean);
-
-  // Find school name by matching against known clients
-  let school = 'לא זוהה';
-  let schoolLine = '';
-
+  let school = 'לא זוהה', schoolLine = '';
   for (const line of lines) {
     if (line.includes('הזמנה עבור בית ספר')) { schoolLine = line; break; }
   }
-
   if (schoolLine) {
-    // Extract raw school name — user confirms in preview
     const afterMarker = (schoolLine.split('הזמנה עבור בית ספר')[1] || '').replace(/^[:,\s]+/, '').trim();
     const rawMatch = afterMarker.match(/^(.+?)(?:\s*,|\s+\d{7,}|\s+טלפון|$)/);
     school = rawMatch ? rawMatch[1].replace(/\s+\d+$/, '').trim() : afterMarker.split(',')[0].trim();
   }
-
-
-  // Find books and quantities
   const bookMap = {
-    'ברוכה הבעה לכיתה ה': 'ברוכה הבאה ה',
-    'ברוכה הבעה לכיתה ו': 'ברוכה הבאה ו',
-    'מבינה עניין לכיתה ד': "מבינה ענין ד'",
-    "מבינה עניין לכיתה ד'": "מבינה ענין ד'",
-    "מבינה עניין לכיתה 'ד": "מבינה ענין ד'",
-    'מבינה עניין לכיתה ה': "מבינה ענין ה'",
-    "מבינה עניין לכיתה ה'": "מבינה ענין ה'",
-    "מבינה עניין לכיתה 'ה": "מבינה ענין ה'",
-    'מבינה ענין לכיתה ד': "מבינה ענין ד'",
-    "מבינה ענין לכיתה ד'": "מבינה ענין ד'",
-    "מבינה ענין לכיתה 'ד": "מבינה ענין ד'",
-    'מבינה ענין לכיתה ה': "מבינה ענין ה'",
-    "מבינה ענין לכיתה ה'": "מבינה ענין ה'",
-    "מבינה ענין לכיתה 'ה": "מבינה ענין ה'",
-    'חברה לעט': 'חברה לעט',
-    'מתחברת למילים': 'מתחברת למילים',
-    'זה כל הסיפור': 'זה כל הסיפור',
-    'כשתקראי תביני': 'כשתקראי תביני',
+    'ברוכה הבעה לכיתה ה': 'ברוכה הבאה ה','ברוכה הבעה לכיתה ו': 'ברוכה הבאה ו',
+    'מבינה עניין לכיתה ד': "מבינה ענין ד'","מבינה עניין לכיתה ד'": "מבינה ענין ד'","מבינה עניין לכיתה 'ד": "מבינה ענין ד'",
+    'מבינה עניין לכיתה ה': "מבינה ענין ה'","מבינה עניין לכיתה ה'": "מבינה ענין ה'","מבינה עניין לכיתה 'ה": "מבינה ענין ה'",
+    'מבינה ענין לכיתה ד': "מבינה ענין ד'","מבינה ענין לכיתה ד'": "מבינה ענין ד'","מבינה ענין לכיתה 'ד": "מבינה ענין ד'",
+    'מבינה ענין לכיתה ה': "מבינה ענין ה'","מבינה ענין לכיתה ה'": "מבינה ענין ה'","מבינה ענין לכיתה 'ה": "מבינה ענין ה'",
+    'חברה לעט': 'חברה לעט','מתחברת למילים': 'מתחברת למילים','זה כל הסיפור': 'זה כל הסיפור','כשתקראי תביני': 'כשתקראי תביני',
   };
-
   const books = [];
-  // Use flexible matching — normalize quotes and spaces before comparing
-  function normStr(s) {
-    return s.replace(/[''׳`]/g, "'").replace(/\s+/g,' ').trim();
-  }
+  function normStr(s) { return s.replace(/[''׳`]/g, "'").replace(/\s+/g,' ').trim(); }
   const normLines = lines.map(normStr);
-
   for (const line of normLines) {
-    let matched = false;
     for (const [key, val] of Object.entries(bookMap)) {
       const normKey = normStr(key);
       if (line.includes(normKey)) {
-        // Extract last number in line (quantity is usually at the end)
         const nums = line.match(/\d+/g);
         if (nums) {
-          // Filter out phone-like numbers (7+ digits)
           const qty = nums.filter(n => n.length <= 4).pop();
-          if (qty) {
-            // Avoid duplicates
-            if (!books.find(b => b.name === val)) {
-              books.push({ name: val, qty: parseInt(qty) });
-            }
-          }
+          if (qty && !books.find(b => b.name === val)) books.push({ name: val, qty: parseInt(qty) });
         }
-        matched = true;
         break;
       }
     }
   }
-
-  // Find contact — line after "ליצירת קשר"
   let contact = '';
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes('ליצירת קשר') && !lines[i].includes('טלפון')) {
-      if (lines[i+1]) {
-        // הסר מספרי טלפון מהשורה — להשאיר רק את השם
-        contact = lines[i+1].replace(/[\d\-\s]{6,}/g, '').trim();
-      }
+      if (lines[i+1]) contact = lines[i+1].replace(/[\d\-\s]{6,}/g, '').trim();
       break;
     }
   }
-
   return { school, books, contact, rawText: raw };
 }
 
@@ -1627,7 +1600,6 @@ let _currentPdfUrl = null;
 function showSplitView(file) {
   if (_currentPdfUrl) URL.revokeObjectURL(_currentPdfUrl);
   _currentPdfUrl = URL.createObjectURL(file);
-  // #toolbar=0&navpanes=0 hides the PDF viewer chrome/thumbnails in Chrome
   document.getElementById('pdfFrame').src = _currentPdfUrl + '#toolbar=0&navpanes=0&scrollbar=1&view=FitH';
   document.getElementById('uploadArea').style.display = 'none';
   document.getElementById('splitView').style.display = 'flex';
@@ -1650,36 +1622,21 @@ async function processPDF(file){
   showSplitView(file);
   showUploadStatus('loading',`⏳ מעבד את הקובץ: ${file.name}...`);
   document.getElementById('previewCard').style.display='none';
-
   try {
     const fd = new FormData();
     fd.append('file', file, file.name);
     fd.append('action', 'extract');
-
     const res = await fetch(UPLOAD_WEBHOOK, {method:'POST', body:fd});
     const text = await res.text();
-
     let response;
     try { response = JSON.parse(text); } catch(e) { response = {raw: text}; }
-
-    // Parse the raw text
-    // Extract rawText from potentially nested JSON
     let rawText = '';
     try {
-      // response.raw contains a JSON string like '{"rawText": "...", "status": "ok"}'
       const rawStr = response.raw || JSON.stringify(response);
       const inner = JSON.parse(rawStr);
       rawText = inner.rawText || rawStr;
-    } catch(e) {
-      rawText = response.rawText || response.raw || '';
-    }
-
-    if (!rawText) {
-      showUploadStatus('error','❌ לא התקבל טקסט מהקובץ');
-      return;
-    }
-
-    // Normalize: reverse word order per line, fix colon/comma placement
+    } catch(e) { rawText = response.rawText || response.raw || ''; }
+    if (!rawText) { showUploadStatus('error','❌ לא התקבל טקסט מהקובץ'); return; }
     const normalizedText = rawText.split(/\r?\n/).map(line => {
       const cleaned = cleanRTL(line).trim();
       if (!cleaned) return '';
@@ -1691,32 +1648,20 @@ async function processPDF(file){
       });
       return fixed.join(' ');
     }).join('\n');
-
-    console.log('Normalized text:', normalizedText.slice(0, 500));
-
     const data = parsePDFText(normalizedText);
     data.date = new Date().toLocaleDateString('he-IL');
-
     pendingOrder = data;
-    // Ensure data is loaded before showing preview
-    if (!Object.values(D).some(arr=>arr.length>0)) {
-      await init();
-    }
+    if (!Object.values(D).some(arr=>arr.length>0)) { await init(); }
     showPreview(data);
     showUploadStatus('success','✅ הקובץ עובד בהצלחה — אשרי את ההזמנה למטה');
-  } catch(e) {
-    showUploadStatus('error','❌ שגיאת חיבור: '+e.message);
-    console.error(e);
-  }
+  } catch(e) { showUploadStatus('error','❌ שגיאת חיבור: '+e.message); console.error(e); }
 }
 
 function addMissingBook(){
   const sel = document.getElementById('pdfAddBookSelect');
   if (!sel || !sel.value || !pendingOrder) return;
   if (!pendingOrder.books) pendingOrder.books = [];
-  if (!pendingOrder.books.find(b => b.name === sel.value)) {
-    pendingOrder.books.push({ name: sel.value, qty: 0 });
-  }
+  if (!pendingOrder.books.find(b => b.name === sel.value)) pendingOrder.books.push({ name: sel.value, qty: 0 });
   showPreview(pendingOrder);
 }
 
@@ -1724,17 +1669,11 @@ function showPreview(data){
   const card = document.getElementById('previewCard');
   const content = document.getElementById('previewContent');
   card.style.display='block';
-
   const books = data.books || [];
-  // Get previous year data for comparison
   const prevYear = YEARS.find(y=>y.label.includes('תשפ"ו'))?.label || YEARS[1].label;
   const prevRows = D[prevYear] || [];
   const prevRow = prevRows.find(r => String(r[C.name]||'').trim() === data.school);
-
-  // Pre-calculate gaps for preview (after D is loaded)
-  const previewGaps = (Object.values(D).some(arr=>arr.length>0))
-    ? calcGaps(data.books || [], data.school)
-    : [];
+  const previewGaps = (Object.values(D).some(arr=>arr.length>0)) ? calcGaps(data.books || [], data.school) : [];
 
   const booksHtml = `
     <div style="margin-top:12px">
@@ -1744,36 +1683,22 @@ function showPreview(data){
       </div>
       <div id="pdfBooksGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
         ${(() => {
-          // All books to show: ordered this year + those dropped from last year
           const allBooks = [...books];
           if (prevRow) {
             for (const bookName of BOOKS) {
               const prevQty = bqty(prevRow, bookName);
               const nowQty = books.find(b=>b.name===bookName)?.qty || 0;
-              if (prevQty > 0 && nowQty === 0) {
-                allBooks.push({name: bookName, qty: 0, dropped: true});
-              }
+              if (prevQty > 0 && nowQty === 0) allBooks.push({name: bookName, qty: 0, dropped: true});
             }
           }
           return allBooks.length ? allBooks.map(b => {
             const prevQty = prevRow ? bqty(prevRow, b.name) : null;
             const diff = prevQty !== null ? b.qty - prevQty : null;
-            // Card background based on gap type
-            let cardBg = 'var(--surface2)';
-            let cardBorder = '1px solid var(--border)';
-            let diffColor = 'var(--muted)';
-            let diffText = '';
-            if (b.dropped) {
-              cardBg = '#c8eef5'; cardBorder = '2px solid #5bb8d4';
-            } else if (prevQty === 0 && b.qty > 0) {
-              cardBg = '#f7c8e0'; cardBorder = '2px solid #e0609a';
-            } else if (diff !== null && diff !== 0) {
-              diffColor = diff > 0 ? '#1a6b35' : '#c0392b';
-              diffText = diff > 0 ? `▲ +${diff}` : `▼ ${diff}`;
-            }
-            if (prevQty !== null && !b.dropped) {
-              diffText = diffText || '= זהה';
-            }
+            let cardBg = 'var(--surface2)', cardBorder = '1px solid var(--border)', diffColor = 'var(--muted)', diffText = '';
+            if (b.dropped) { cardBg = '#c8eef5'; cardBorder = '2px solid #5bb8d4'; }
+            else if (prevQty === 0 && b.qty > 0) { cardBg = '#f7c8e0'; cardBorder = '2px solid #e0609a'; }
+            else if (diff !== null && diff !== 0) { diffColor = diff > 0 ? '#1a6b35' : '#c0392b'; diffText = diff > 0 ? `▲ +${diff}` : `▼ ${diff}`; }
+            if (prevQty !== null && !b.dropped) diffText = diffText || '= זהה';
             const _bsid = 'pdfbk_'+b.name.replace(/[^a-zA-Zא-ת]/g,'_');
             return `<div style="background:${cardBg};border:${cardBorder};border-radius:8px;padding:10px 12px;text-align:center">
               <div style="font-size:11px;color:var(--muted);margin-bottom:4px">${b.name}</div>
@@ -1803,21 +1728,14 @@ function showPreview(data){
       })()}
     </div>`;
 
-  const clientList = [...new Set(
-    Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean)
-  )].sort();
-  const isUnknown = !data.school || data.school === 'לא זוהה';
+  const clientList = [...new Set(Object.values(D).flat().map(r=>String(r[C.name]||'').trim()).filter(Boolean))].sort();
   const isExact = clientList.includes(data.school);
-
-  // Load existing client data from sheets (latest year)
   let existingRow = null;
   for (const y of YEARS) {
     const rows = D[y.label] || [];
     const found = rows.find(r => String(r[C.name]||'').trim() === data.school);
     if (found) { existingRow = found; break; }
   }
-
-  // Client detail fields — editable
   const detailFields = [
     { key:'contact', label:'איש קשר / רכזת', icon:'👤' },
     { key:'phone',   label:'טלפון',           icon:'📞' },
@@ -1825,7 +1743,6 @@ function showPreview(data){
     { key:'city',    label:'עיר',             icon:'🏙️' },
     { key:'invoice', label:'חשבונית על שם',   icon:'🧾' },
   ];
-
   const detailsHtml = `
     <div style="margin-bottom:14px">
       <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">פרטי לקוח</div>
@@ -1843,13 +1760,11 @@ function showPreview(data){
     </div>`;
 
   content.innerHTML=`
-    <!-- School selector -->
     <div style="background:${isExact?'var(--surface2)':'#fffbec'};border:1px solid ${isExact?'var(--border)':'#f5e0a0'};border-radius:8px;padding:10px 14px;margin-bottom:10px">
       <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">
         בית ספר
-        ${isExact
-          ? '<span style="background:#e6f4ec;color:#1a6b35;border:1px solid #b7ddc6;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">✓ זוהה</span>'
-          : '<span style="background:#fffbec;color:#7a5c00;border:1px solid #f5e0a0;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">⚠️ בדקי</span>'}
+        ${isExact ? '<span style="background:#e6f4ec;color:#1a6b35;border:1px solid #b7ddc6;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">✓ זוהה</span>'
+                  : '<span style="background:#fffbec;color:#7a5c00;border:1px solid #f5e0a0;border-radius:20px;padding:1px 8px;font-size:10px;margin-right:6px">⚠️ בדקי</span>'}
       </div>
       <input id="schoolEdit" value="${data.school||''}" placeholder="שם בית ספר..."
         style="width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);font-size:15px;font-weight:700;font-family:'Heebo',sans-serif;color:var(--text);padding:4px 0;outline:none;margin-bottom:8px"
@@ -1861,19 +1776,11 @@ function showPreview(data){
         <div id="schoolDropdown" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:200px;overflow-y:auto;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.15)"></div>
       </div>
     </div>
-
-    <!-- Date row -->
     <div style="background:var(--surface2);border-radius:8px;padding:8px 14px;margin-bottom:10px;font-size:12px;color:var(--muted)">
       📅 תאריך: <strong>${data.date||new Date().toLocaleDateString('he-IL')}</strong>
     </div>
-
-    <!-- Client details from sheets -->
     ${detailsHtml}
-
-    <!-- Books -->
     ${booksHtml}
-
-    <!-- Gaps -->
     ${previewGaps.length ? `<div style="margin-top:14px">
       <div style="font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:8px">📊 פערים מול ${prevYear}</div>
       <div style="display:flex;flex-direction:column;gap:6px">
@@ -1885,8 +1792,6 @@ function showPreview(data){
         }).join('')}
       </div>
     </div>` : ''}
-
-    <!-- מדריך וחוברת למורה -->
     <div style="border:1px solid #2aa0c8;border-radius:10px;padding:14px 16px;margin-top:14px;background:#eef8fc">
       <div style="font-size:12px;font-weight:700;color:#0a4a62;margin-bottom:10px">📚 מדריך וחוברת למורה</div>
       ${(()=>{
@@ -1921,25 +1826,20 @@ function showPreview(data){
         }).join('');
       })()}
     </div>
-
-    <!-- Notes -->
     <div style="margin-top:14px">
       <div style="font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);margin-bottom:6px">💬 הערות</div>
       ${existingRow && String(existingRow[C.notes]||'').trim() ? `<div style="font-size:12px;color:#0a4a62;font-weight:600;background:#eef8fc;border:1px solid #2aa0c8;border-radius:6px;padding:6px 10px;margin-bottom:6px">הערה משנה שעברה: ${String(existingRow[C.notes]).trim()}</div>` : ''}
-      <textarea id="orderNotes" placeholder="הערה חדשה לתשפ״ז (אופציונלי — אם לא תכתבי כלום, לא תישמר הערה)..." rows="2"
+      <textarea id="orderNotes" placeholder="הערה חדשה לתשפ״ז (אופציונלי)..." rows="2"
         style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;direction:rtl"
         oninput="if(pendingOrder)pendingOrder.notes=this.value"></textarea>
     </div>
-
     ${data.rawText?`<details style="margin-top:10px"><summary style="font-size:11px;color:var(--dim);cursor:pointer">הצג טקסט גולמי מה-PDF</summary><pre style="font-size:10px;background:var(--surface2);padding:10px;border-radius:8px;margin-top:6px;overflow-x:auto;white-space:pre-wrap;direction:rtl;max-height:160px">${data.rawText.slice(0,800)}</pre></details>`:''}
   `;
 
-  // Attach school search events AFTER innerHTML is written
   const schoolSearchEl = document.getElementById('schoolSearch');
   if (schoolSearchEl) {
     schoolSearchEl.addEventListener('input', function(){
       filterSchoolList(this.value);
-      // עדכן גם את שדה שם בית הספר העליון + pendingOrder, כדי שגם שם חדש (לא ברשימה) יישמר
       const editEl = document.getElementById('schoolEdit');
       if (editEl) editEl.value = this.value;
       if (pendingOrder) pendingOrder.school = this.value;
@@ -1954,58 +1854,42 @@ function showPreview(data){
 }
 
 // ── Gap types ──
-// 'new_client'  = yellow  🟡
-// 'new_book'    = pink    🩷
-// 'removed_book'= teal    🩵
-// 'qty_change'  = normal
-
 function calcGaps(books, schoolName) {
-  // Always compare to תשפ"ו = YEARS[1] (index 1 since תשפ"ז is index 0)
   const prevYearLabel = YEARS[1].label;
   const prevRows = D[prevYearLabel] || [];
   const allPrevNames = new Set(prevRows.map(r => String(r[C.name]||'').trim()).filter(Boolean));
   const prevRow = prevRows.find(r => String(r[C.name]||'').trim() === schoolName);
   const isNewClient = !allPrevNames.has(schoolName);
-
   const gaps = [];
-
   if (isNewClient) {
     const bookList = books.filter(b=>b.qty>0).map(b=>`${b.name} ${b.qty}`).join(', ');
     gaps.push({ type:'new_client', text:`לקוח חדש${bookList?' — '+bookList:''}` });
     return gaps;
   }
-
-  // Check books ordered this year
   for (const {name, qty} of books) {
     const prevQty = prevRow ? bqty(prevRow, name) : 0;
-    if (qty > 0 && prevQty === 0) {
-      gaps.push({ type:'new_book', text:`ספר חדש: ${name} (${qty})` });
-    } else if (qty !== prevQty && qty > 0 && prevQty > 0) {
+    if (qty > 0 && prevQty === 0) gaps.push({ type:'new_book', text:`ספר חדש: ${name} (${qty})` });
+    else if (qty !== prevQty && qty > 0 && prevQty > 0) {
       const diff = qty - prevQty;
       gaps.push({ type:'qty_change', text:`${name}: ${diff>0?'+':''}${diff} (${prevQty}→${qty})` });
     }
   }
-
-  // Check books that existed last year but NOT ordered this year
   if (prevRow) {
     for (const bookName of BOOKS) {
       const prevQty = bqty(prevRow, bookName);
       const nowQty = books.find(b => b.name === bookName)?.qty || 0;
-      if (prevQty > 0 && nowQty === 0) {
-        gaps.push({ type:'removed_book', text:`הורידו: ${bookName} (היה ${prevQty})` });
-      }
+      if (prevQty > 0 && nowQty === 0) gaps.push({ type:'removed_book', text:`הורידו: ${bookName} (היה ${prevQty})` });
     }
   }
-
   return gaps;
 }
 
 function gapColor(type) {
   switch(type) {
-    case 'new_client':   return { bg:'#fff3b0', border:'#e6c200', color:'#6b4a00' };  // צהוב חזק
-    case 'new_book':     return { bg:'#fcd0ec', border:'#e0509a', color:'#7a0050' };  // ורוד חזק
-    case 'removed_book': return { bg:'#c8eef7', border:'#2aa0c8', color:'#0a4a62' };  // תכלת חזק
-    default:             return { bg:'#dff0d8', border:'#5cb85c', color:'#2d6a2d' };  // ירוק לשינוי כמות
+    case 'new_client':   return { bg:'#fff3b0', border:'#e6c200', color:'#6b4a00' };
+    case 'new_book':     return { bg:'#fcd0ec', border:'#e0509a', color:'#7a0050' };
+    case 'removed_book': return { bg:'#c8eef7', border:'#2aa0c8', color:'#0a4a62' };
+    default:             return { bg:'#dff0d8', border:'#5cb85c', color:'#2d6a2d' };
   }
 }
 
@@ -2020,59 +1904,38 @@ function gapIcon(type) {
 
 async function approveOrder(){
   if(!pendingOrder)return;
-
-  // Update school name from edit field
   const schoolEdit = document.getElementById('schoolEdit');
   if (schoolEdit) pendingOrder.school = schoolEdit.value.trim() || pendingOrder.school;
-
-  // Update detail fields from form
   ['contact','phone','target','city','invoice'].forEach(k => {
     const el = document.getElementById('detail_'+k);
     if (el) pendingOrder[k] = el.value.trim();
   });
   const notesEl = document.getElementById('orderNotes');
   if (notesEl) pendingOrder.notes = notesEl.value.trim();
-
   if (!pendingOrder.school || pendingOrder.school === 'לא זוהה') {
-    showUploadStatus('error','❌ אנא הכניסי שם בית ספר לפני האישור');
-    return;
+    showUploadStatus('error','❌ אנא הכניסי שם בית ספר לפני האישור'); return;
   }
-
   const btn = document.getElementById('approveBtn');
   btn.textContent='⏳ שומר...'; btn.disabled=true;
-
-  // Calculate gaps vs previous year
   const gaps = calcGaps(pendingOrder.books || [], pendingOrder.school);
   const sheetGaps = gaps.filter(g => g.type !== 'qty_change');
   pendingOrder.gaps = sheetGaps.map(g=>g.text).join(' | ');
-  pendingOrder.gapType = sheetGaps[0]?.type || '';
-
-  // Build payload for Make/Google Sheets
   const payload = {
-    action: 'save',
-    year: 'תשפז',
+    action: 'save', year: 'תשפז',
     date: new Date().toLocaleDateString('he-IL'),
     school: pendingOrder.school,
-    contact: pendingOrder.contact || '',
-    phone:   pendingOrder.phone   || '',
-    target:  pendingOrder.target  || '',
-    city:    pendingOrder.city    || '',
-    invoice: pendingOrder.invoice || '',
-    notes:   pendingOrder.notes   || '',
-    guide:   (()=>{const g=pendingOrder._guide||{};const s=Object.entries(g).filter(([,v])=>v>0).map(([k,v])=>k+' - '+v).join(', ');return s||'';})(  ),
-    booklet: (()=>{const b=pendingOrder._booklet||{};const s=Object.entries(b).filter(([,v])=>v>0).map(([k,v])=>k+' - '+v).join(', ');return s||'';})(  ),
-    gaps: pendingOrder.gaps,
-    warehouse: 'א',
+    contact: pendingOrder.contact || '', phone: pendingOrder.phone   || '',
+    target:  pendingOrder.target  || '', city:  pendingOrder.city    || '',
+    invoice: pendingOrder.invoice || '', notes: pendingOrder.notes   || '',
+    guide:   (()=>{const g=pendingOrder._guide||{};return Object.entries(g).filter(([,v])=>v>0).map(([k,v])=>k+' - '+v).join(', ');})(),
+    booklet: (()=>{const b=pendingOrder._booklet||{};return Object.entries(b).filter(([,v])=>v>0).map(([k,v])=>k+' - '+v).join(', ');})(),
+    gaps: pendingOrder.gaps, warehouse: 'א',
     isNew: !Object.values(D).flat().some(r => String(r[C.name]||'').trim() === pendingOrder.school),
   };
-
-  // Add book quantities — always send all books (0 if not ordered)
   for (const book of BOOKS) {
     const found = (pendingOrder.books || []).find(b => b.name === book);
     payload[book] = found ? found.qty : '';
   }
-
-  // Calculate new inventory after this order (subtract from warehouse א)
   const inventoryUpdates = [];
   for (const book of BOOKS) {
     const ordered = Number(payload[book]) || 0;
@@ -2080,86 +1943,61 @@ async function approveOrder(){
     const inv = inventory.find(i => i.book === book);
     if (!inv) continue;
     const newWh1 = Math.max(0, inv.wh1 - ordered);
-    const newWh2 = inv.wh2;
-    inventoryUpdates.push({
-      book,
-      ordered,
-      wh1_before: inv.wh1,
-      wh1_after:  newWh1,
-      wh2:        newWh2,
-      low:        newWh1 < 500,
-      empty:      newWh1 === 0,
-    });
+    inventoryUpdates.push({ book, ordered, wh1_before: inv.wh1, wh1_after: newWh1, wh2: inv.wh2, low: newWh1 < 500, empty: newWh1 === 0 });
   }
   payload.inventoryUpdates = inventoryUpdates;
-
   try {
-    const res = await fetch(CONFIG.SAVE_WEBHOOK, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(payload)
-    });
-
+    const res = await fetch(CONFIG.SAVE_WEBHOOK, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
     if (res.ok) {
-      const savedSchool = pendingOrder.school;
-      const savedGaps = gaps;
-      const savedUpdates = inventoryUpdates;
-
-      // Update local inventory immediately (optimistic update)
-      for (const upd of savedUpdates) {
+      for (const upd of inventoryUpdates) {
         const inv = inventory.find(i => i.book === upd.book);
         if (inv) inv.wh1 = upd.wh1_after;
       }
-      renderInventory();
-
-      closeSplitView();
+      renderInventory(); closeSplitView();
       const approveBtn2 = document.getElementById('approveBtn');
       if(approveBtn2){approveBtn2.textContent='✅ אשרי ושמרי לתשפ"ז';approveBtn2.disabled=false;}
-
-      // Build success message
-      let successMsg = `🎉 ההזמנה של ${savedSchool} נשמרה לגיליון תשפ"ז!`;
-      if (savedGaps.length) successMsg += `\n📊 פערים: ${savedGaps.map(g=>g.text).join(' | ')}`;
-      const lowBooks = savedUpdates.filter(u => u.empty || u.low);
-      if (lowBooks.length) successMsg += `\n⚠️ שים לב למלאי: ${lowBooks.map(u=>u.book+' נשאר '+u.wh1_after).join(', ')}`;
+      let successMsg = `🎉 ההזמנה של ${pendingOrder.school} נשמרה לגיליון תשפ"ז!`;
+      const lowBooks = inventoryUpdates.filter(u => u.empty || u.low);
+      if (lowBooks.length) successMsg += ` ⚠️ מלאי: ${lowBooks.map(u=>u.book+' נשאר '+u.wh1_after).join(', ')}`;
       showUploadStatus('success', successMsg);
       pendingOrder = null;
       document.getElementById('pdfInput').value='';
-      // Reload data after 2 seconds (without rebuilding year buttons)
       setTimeout(async()=>{
         for (const y of YEARS) {
-          try {
-            const {cols,rows} = await fetchTab(y.tab);
-            D[y.label]=rows; H[y.label]=cols;
-          } catch(e) { console.warn('skip',y.tab); }
+          try { const {cols,rows} = await fetchTab(y.tab); D[y.label]=rows; H[y.label]=cols; } catch(e) {}
         }
         activeY='תשפ"ז'; updYbtns(); render();
       }, 2000);
-    } else {
-      throw new Error(`HTTP ${res.status}`);
-    }
+    } else { throw new Error(`HTTP ${res.status}`); }
   } catch(e) {
     showUploadStatus('error','❌ שגיאה בשמירה: '+e.message);
-    btn.textContent='✅ אשרי ושמרי לתשפ"ז';
-    btn.disabled=false;
+    btn.textContent='✅ אשרי ושמרי לתשפ"ז'; btn.disabled=false;
   }
 }
 
-function rejectOrder(){
-  closeSplitView();
-  showUploadStatus('info','ביטלת את ההזמנה');
-}
+function rejectOrder(){ closeSplitView(); showUploadStatus('info','ביטלת את ההזמנה'); }
 
 function showUploadStatus(type, msg){
   const colors={loading:'#fff8e6',success:'#e8f4ec',error:'#fdf0ef',info:'var(--surface2)'};
   const borders={loading:'#f5e0a0',success:'#b7ddc6',error:'#f0c0bc',info:'var(--border)'};
   const style = `display:block;background:${colors[type]};border:1px solid ${borders[type]};border-radius:10px;padding:12px 16px;font-size:13px;font-weight:500`;
-  // Update whichever status element is visible
-  ['uploadStatus','uploadStatus2'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){el.style.cssText=style;el.innerHTML=msg;}
-  });
+  ['uploadStatus','uploadStatus2'].forEach(id=>{ const el=document.getElementById(id); if(el){el.style.cssText=style;el.innerHTML=msg;} });
 }
 </script>
+
+<!-- ══ MISSING SCHOOLS MODAL ★ NEW ══ -->
+<div id="missingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;backdrop-filter:blur(3px)">
+  <div style="background:var(--surface);border-radius:18px;width:100%;max-width:860px;box-shadow:0 24px 80px rgba(0,0,0,.2);overflow:hidden;margin:auto">
+    <div style="background:#7a4a00;color:#fff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:18px;font-weight:700" id="mmTitle">⏳ עוד לא הזמינו</div>
+        <div style="font-size:12px;opacity:.7;margin-top:2px" id="mmSub"></div>
+      </div>
+      <button onclick="closeMissingModal()" style="background:rgba(255,255,255,.15);border:none;color:#fff;font-size:18px;cursor:pointer;padding:6px 10px;border-radius:8px">✕</button>
+    </div>
+    <div style="padding:20px" id="mmBody"></div>
+  </div>
+</div>
 
 <!-- ══ MANUAL ORDER MODAL ══ -->
 <div id="manualOrderModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(3px)">
@@ -2178,8 +2016,6 @@ function showUploadStatus(type, msg){
       </div>
       <div id="manualSchoolChosen" style="margin-top:6px;font-size:13px;font-weight:600;color:var(--accent)"></div>
     </div>
-
-    <!-- פרטי לקוח — ממולאים אוטומטית אחרי בחירת בי"ס -->
     <div id="manualClientDetails" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
       <div>
@@ -2196,7 +2032,8 @@ function showUploadStatus(type, msg){
     <div style="font-size:11px;font-weight:600;color:var(--dim);margin-bottom:5px;text-transform:uppercase">הערה</div>
     <textarea id="manualNote" placeholder="הערה אופציונלית..." rows="2"
       style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-family:'Heebo',sans-serif;font-size:13px;color:var(--text);outline:none;resize:vertical;margin-bottom:16px"></textarea>
-    <!-- מדריך וחוברת למורה -->
+    <!-- hidden to avoid errors — manualGuides referenced in openAddOrder -->
+    <div id="manualGuides" style="display:none"></div>
     <div style="border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:16px;background:var(--surface2)">
       <div style="font-size:12px;font-weight:700;color:var(--dim);margin-bottom:12px;text-transform:uppercase">📚 מדריך וחוברת למורה</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
